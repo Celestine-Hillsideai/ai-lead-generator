@@ -19,10 +19,10 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] ICP configuration persisted per campaign
 
 ## Phase 3 — Lead Import
-- [ ] CSV upload with validation preview (spec §11)
-- [ ] URL normalization to canonical domain
-- [ ] Duplicate detection, import stats (accepted/rejected/duplicate/invalid)
-- [ ] Leads table
+- [x] CSV upload with validation preview (spec §11) — 2026-09-10, B5 (`lib/validation/csv.ts`; upload UI is a frontend-session item, validation logic itself is done)
+- [x] URL normalization to canonical domain — 2026-09-10, B5
+- [x] Duplicate detection, import stats (accepted/rejected/duplicate/invalid) — 2026-09-10, B5
+- [ ] Leads table *(frontend session)*
 
 ## Phase 4 — Research
 - [x] Secure URL fetcher with SSRF protection (spec §12, §23) — 2026-09-10, B4 (`lib/security/ssrf.ts`, `lib/scraper/fetcher.ts`; known residual DNS-rebinding gap noted in code comments)
@@ -31,10 +31,10 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] Evidence store (`ResearchSource`, `ResearchFinding`) *(schema exists from B2; population happens in B6/B7)*
 
 ## Phase 5 — Decision Makers
-- [ ] Provider abstraction for search/contact-data providers (spec §14)
-- [ ] Public team/leadership page research
-- [ ] Candidate ranking, confidence + source tracking
-- [ ] Contact email status (verified/public/unverified/invalid/unknown)
+- [x] Provider abstraction for search/contact-data providers (spec §14) — 2026-09-10, B5 (`lib/search/`, mock only, no real provider selected)
+- [ ] Public team/leadership page research *(agent itself: B6)*
+- [ ] Candidate ranking, confidence + source tracking *(agent itself: B6)*
+- [x] Contact email status (verified/public/unverified/invalid/unknown) — modeled in `types/status.ts` + `lib/search/types.ts`, 2026-09-10, B5
 
 ## Phase 6 — Qualification
 - [ ] Scoring engine with default weights (spec §15)
@@ -56,10 +56,10 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] Approved-only CSV export
 
 ## Phase 10 — Optional Sending
-- [ ] `EmailProvider` interface + Resend implementation (spec §20)
-- [ ] Sending disabled by default; explicit opt-in config
-- [ ] Rate limits, retry handling, send logging
-- [ ] Suppression/unsubscribe list enforced before every send
+- [x] `EmailProvider` interface + Resend implementation (spec §20) — 2026-09-10, B5 (`lib/email/`)
+- [x] Sending disabled by default; explicit opt-in config — 2026-09-10, B5 (MOCK_EMAIL must be explicitly "false" to use Resend)
+- [ ] Rate limits, retry handling, send logging *(orchestration-level, later)*
+- [ ] Suppression/unsubscribe list enforced before every send *(orchestration-level, later)*
 
 ## Cross-cutting (ongoing through every phase)
 - [x] Zod validation on all agent I/O and API payloads — 2026-09-10, B3 (`types/contracts/*`, 20 passing round-trip tests in `tests/unit/contracts.test.ts`)
