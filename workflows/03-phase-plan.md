@@ -7,8 +7,8 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 ## Phase 1 — Foundation
 - [ ] Next.js + TypeScript project scaffolded *(deferred — frontend session)*
 - [ ] Claude Frontend Design Skill applied to base UI shell (not a generic dashboard template — spec §1) *(deferred — frontend session)*
-- [ ] Supabase project connected, Auth wired up
-- [ ] Base schema + RLS policies (spec §8, §9)
+- [ ] Supabase project connected, Auth wired up *(migrations written, awaiting `supabase link` + `db push` with live credentials)*
+- [x] Base schema + RLS policies (spec §8, §9) — 2026-09-10, B2 (migrations in `supabase/migrations/`, not yet applied to a live project)
 - [x] `.env.example` created, matches `workflows/05-env-vars.md` — 2026-09-10, B1
 - [x] Backend toolchain scaffolded: `package.json`, `tsconfig.json`, `trigger.config.ts`, eslint/vitest config, git repo initialized — 2026-09-10, B1
 - [x] Trigger.dev `dev` and `deploy` verified working end-to-end (`hello-world` task deployed to `prod`) — 2026-09-10, B1
