@@ -1,0 +1,35 @@
+{
+  "name": "ai-lead-generator-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:trigger": "trigger.dev dev",
+    "deploy:trigger": "trigger.dev deploy",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "trigger:campaign": "tsx scripts/trigger-campaign.ts"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "4.5.16",
+    "@supabase/supabase-js": "^2",
+    "openai": "^4",
+    "@anthropic-ai/sdk": "^0.32",
+    "resend": "^4",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@trigger.dev/build": "4.5.16",
+    "typescript": "^5",
+    "tsx": "^4",
+    "@types/node": "^20",
+    "vitest": "^2",
+    "eslint": "^9",
+    "typescript-eslint": "^8"
+  }
+}
