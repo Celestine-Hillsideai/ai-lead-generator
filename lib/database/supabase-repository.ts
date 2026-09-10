@@ -11,7 +11,7 @@ import type {
   NewEmailDraft,
   NewAgentRun,
 } from "./repository";
-import type { CompanyResearchStatus } from "../../types/status";
+import type { CompanyResearchStatus, FactType } from "../../types/status";
 
 const TERMINAL_STATUSES: CompanyResearchStatus[] = ["EMAIL_READY", "NEEDS_REVIEW", "APPROVED", "FAILED"];
 
@@ -119,7 +119,11 @@ export class SupabaseCampaignRepository implements CampaignPipelineRepository {
       claim: f.claim,
       evidence: f.evidence,
       confidence: f.confidence,
-      factType: f.fact_type,
+      // The generated Database type widens check-constrained text columns to
+      // `string` (Supabase doesn't model CHECK constraints in its type gen);
+      // the literal union is enforced at the Zod layer (types/contracts),
+      // not by the DB client's types. Safe to narrow here.
+      factType: f.fact_type as FactType,
     }));
   }
 

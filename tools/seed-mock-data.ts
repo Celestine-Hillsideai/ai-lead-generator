@@ -17,27 +17,33 @@
 
 import { getSupabaseServiceClient } from "../lib/database/client";
 
+// Real, stable, public websites -- NOT invented "*.example.com" subdomains.
+// example.com itself resolves, but arbitrary subdomains of it do not, which
+// means the crawler finds zero pages and the whole pipeline run never gets
+// past the research stage. MOCK_AI/MOCK_SEARCH/MOCK_EMAIL mock the AI/search/
+// email calls (per spec §29), but crawling was never one of the mockable
+// pieces -- it needs a real, reachable website to prove anything.
 const MOCK_COMPANIES = [
   {
-    name: "Acme Logistics",
-    website: "https://acme-logistics.example.com",
-    normalized_domain: "acme-logistics.example.com",
-    industry: "Logistics",
-    location: "Lagos, Nigeria",
+    name: "IANA",
+    website: "https://www.iana.org",
+    normalized_domain: "www.iana.org",
+    industry: "Internet Infrastructure",
+    location: "Los Angeles, USA",
   },
   {
-    name: "Northwind Traders",
-    website: "https://northwind.example.com",
-    normalized_domain: "northwind.example.com",
-    industry: "Retail",
-    location: "Accra, Ghana",
+    name: "Mozilla",
+    website: "https://www.mozilla.org",
+    normalized_domain: "www.mozilla.org",
+    industry: "Software",
+    location: "Mountain View, USA",
   },
   {
-    name: "Fabrikam Manufacturing",
-    website: "https://fabrikam.example.com",
-    normalized_domain: "fabrikam.example.com",
-    industry: "Manufacturing",
-    location: "Nairobi, Kenya",
+    name: "Wikimedia Foundation",
+    website: "https://www.wikimedia.org",
+    normalized_domain: "www.wikimedia.org",
+    industry: "Nonprofit",
+    location: "San Francisco, USA",
   },
   {
     // Deliberately broken: DNS will fail to resolve this domain, so this

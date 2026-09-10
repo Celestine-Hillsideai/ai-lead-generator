@@ -92,7 +92,7 @@ export class FakeCampaignRepository implements CampaignPipelineRepository {
   async getCompaniesToProcess(campaignId: string, limit: number): Promise<CompanyRow[]> {
     const terminal: CompanyResearchStatus[] = ["EMAIL_READY", "NEEDS_REVIEW", "APPROVED", "FAILED"];
     return Array.from(this.companies.values())
-      .filter((c) => c.campaign_id === campaignId && !terminal.includes(c.research_status))
+      .filter((c) => c.campaign_id === campaignId && !terminal.includes(c.research_status as CompanyResearchStatus))
       .slice(0, limit);
   }
 
