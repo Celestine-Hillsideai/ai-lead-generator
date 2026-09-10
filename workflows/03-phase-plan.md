@@ -27,25 +27,25 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 ## Phase 4 — Research
 - [x] Secure URL fetcher with SSRF protection (spec §12, §23) — 2026-09-10, B4 (`lib/security/ssrf.ts`, `lib/scraper/fetcher.ts`; known residual DNS-rebinding gap noted in code comments)
 - [x] Sitemap discovery + bounded crawler (default 15 pages/company) — 2026-09-10, B4 (`lib/scraper/{sitemap,crawler,robots,extract}.ts`, 13 passing tests against a local test server)
-- [ ] Website Research Agent producing the output contract in spec §13 *(next: B6)*
-- [ ] Evidence store (`ResearchSource`, `ResearchFinding`) *(schema exists from B2; population happens in B6/B7)*
+- [x] Website Research Agent producing the output contract in spec §13 — 2026-09-10, B6 (`agents/research-agent.ts`, `prompts/research.prompt.ts`)
+- [ ] Evidence store (`ResearchSource`, `ResearchFinding`) *(schema exists from B2; population happens in B7 orchestration)*
 
 ## Phase 5 — Decision Makers
 - [x] Provider abstraction for search/contact-data providers (spec §14) — 2026-09-10, B5 (`lib/search/`, mock only, no real provider selected)
-- [ ] Public team/leadership page research *(agent itself: B6)*
-- [ ] Candidate ranking, confidence + source tracking *(agent itself: B6)*
+- [x] Public team/leadership page research — 2026-09-10, B6 (`agents/decision-maker-agent.ts` takes crawled pages + optional SearchProvider results)
+- [x] Candidate ranking, confidence + source tracking — 2026-09-10, B6 (role-priority instruction in `prompts/decision-maker.prompt.ts`)
 - [x] Contact email status (verified/public/unverified/invalid/unknown) — modeled in `types/status.ts` + `lib/search/types.ts`, 2026-09-10, B5
 
 ## Phase 6 — Qualification
-- [ ] Scoring engine with default weights (spec §15)
-- [ ] Configurable weights in Settings
-- [ ] Score/tier visualization in the leads table and lead detail view
+- [x] Scoring engine with default weights (spec §15) — 2026-09-10, B6 (`agents/qualification-agent.ts`; overall score/tier recomputed deterministically from the model's sub-scores rather than trusting model arithmetic)
+- [x] Configurable weights in Settings — weights are a parameter to `runQualificationAgent`, 2026-09-10, B6 (Settings *UI* is a frontend-session item)
+- [ ] Score/tier visualization in the leads table and lead detail view *(frontend session)*
 
 ## Phase 7 — Personalization & Email
-- [ ] Personalization Agent (evidence-backed hook/observation/opportunity/value connection — spec §16)
-- [ ] Email Generation Agent (subject/body/CTA/confidence — spec §17)
-- [ ] Evidence linking (`EmailDraft.evidenceIds`) and Evidence drawer/modal (spec §18)
-- [ ] Confidence threshold routes low-confidence drafts to `NEEDS_REVIEW`
+- [x] Personalization Agent (evidence-backed hook/observation/opportunity/value connection — spec §16) — 2026-09-10, B6 (`agents/personalization-agent.ts`; hallucinated evidenceIds are rejected via a per-call schema refinement, not just prompt instruction)
+- [x] Email Generation Agent (subject/body/CTA/confidence — spec §17) — 2026-09-10, B6 (`agents/email-agent.ts`; evidenceIds checked against the personalization material's own evidence)
+- [x] Evidence linking (`EmailDraft.evidenceIds`) — 2026-09-10, B6 (structural, not just DB column); Evidence drawer/modal *(frontend session)*
+- [x] Confidence threshold routes low-confidence drafts to `NEEDS_REVIEW` — 2026-09-10, B6 (`agents/email-agent.ts`'s `needsReview()`; actually setting `Company.researchStatus`/`EmailDraft.status` happens in B7 orchestration)
 
 ## Phase 8 — Approval
 - [ ] Approval queue: approve/reject/edit/regenerate (spec §19)

@@ -1,4 +1,4 @@
-import type { ZodSchema } from "zod";
+import type { ZodType, ZodTypeDef } from "zod";
 import type { AIProvider, GenerateJsonParams } from "./types";
 
 /**
@@ -21,7 +21,13 @@ export class MalformedAIResponseError extends Error {
 }
 
 export interface GenerateStructuredOptions<T> extends GenerateJsonParams {
-  schema: ZodSchema<T>;
+  // Input is intentionally decoupled from T (rather than using zod's
+  // ZodSchema<T> alias, which binds Input=Output=T) -- with that alias, a
+  // schema containing a .default() field infers T as the wider "input"
+  // shape (fields optional) instead of the narrower "output" shape (fields
+  // required after defaulting), which breaks agents returning the output type.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberate, see comment above
+  schema: ZodType<T, ZodTypeDef, any>;
   maxAttempts?: number;
 }
 
