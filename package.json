@@ -19,6 +19,7 @@
     "@anthropic-ai/sdk": "^0.32",
     "@supabase/supabase-js": "^2",
     "@trigger.dev/sdk": "4.5.16",
+    "cheerio": "^1",
     "openai": "^4",
     "resend": "^4",
     "zod": "^3"

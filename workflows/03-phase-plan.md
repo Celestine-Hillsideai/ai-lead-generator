@@ -25,10 +25,10 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] Leads table
 
 ## Phase 4 — Research
-- [ ] Secure URL fetcher with SSRF protection (spec §12, §23)
-- [ ] Sitemap discovery + bounded crawler (default 15 pages/company)
-- [ ] Website Research Agent producing the output contract in spec §13
-- [ ] Evidence store (`ResearchSource`, `ResearchFinding`)
+- [x] Secure URL fetcher with SSRF protection (spec §12, §23) — 2026-09-10, B4 (`lib/security/ssrf.ts`, `lib/scraper/fetcher.ts`; known residual DNS-rebinding gap noted in code comments)
+- [x] Sitemap discovery + bounded crawler (default 15 pages/company) — 2026-09-10, B4 (`lib/scraper/{sitemap,crawler,robots,extract}.ts`, 13 passing tests against a local test server)
+- [ ] Website Research Agent producing the output contract in spec §13 *(next: B6)*
+- [ ] Evidence store (`ResearchSource`, `ResearchFinding`) *(schema exists from B2; population happens in B6/B7)*
 
 ## Phase 5 — Decision Makers
 - [ ] Provider abstraction for search/contact-data providers (spec §14)
