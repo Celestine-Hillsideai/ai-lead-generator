@@ -7,6 +7,11 @@
  *
  * Do not hand-edit once that's possible -- regenerate instead so this never
  * drifts from the actual schema.
+ *
+ * `Relationships: []` on every table and `Views`/`Functions: {}` on the
+ * schema are required to satisfy @supabase/postgrest-js's GenericSchema/
+ * GenericTable constraints -- omitting them silently collapses every
+ * Row/Insert/Update type to `never` rather than producing a visible error.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -18,6 +23,7 @@ export interface Database {
         Row: { id: string; email: string; created_at: string };
         Insert: { id: string; email: string; created_at?: string };
         Update: { id?: string; email?: string; created_at?: string };
+        Relationships: [];
       };
       campaigns: {
         Row: {
@@ -42,6 +48,7 @@ export interface Database {
           name: string;
         };
         Update: Partial<Database["public"]["Tables"]["campaigns"]["Row"]>;
+        Relationships: [];
       };
       companies: {
         Row: {
@@ -79,6 +86,7 @@ export interface Database {
           normalized_domain: string;
         };
         Update: Partial<Database["public"]["Tables"]["companies"]["Row"]>;
+        Relationships: [];
       };
       contacts: {
         Row: {
@@ -96,6 +104,7 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["contacts"]["Row"]> & { company_id: string };
         Update: Partial<Database["public"]["Tables"]["contacts"]["Row"]>;
+        Relationships: [];
       };
       research_sources: {
         Row: {
@@ -112,6 +121,7 @@ export interface Database {
           url: string;
         };
         Update: Partial<Database["public"]["Tables"]["research_sources"]["Row"]>;
+        Relationships: [];
       };
       research_findings: {
         Row: {
@@ -132,6 +142,7 @@ export interface Database {
           fact_type: "FACT" | "INFERENCE" | "UNKNOWN";
         };
         Update: Partial<Database["public"]["Tables"]["research_findings"]["Row"]>;
+        Relationships: [];
       };
       qualifications: {
         Row: {
@@ -155,6 +166,7 @@ export interface Database {
           tier: "HIGH" | "MEDIUM" | "LOW" | "UNQUALIFIED";
         };
         Update: Partial<Database["public"]["Tables"]["qualifications"]["Row"]>;
+        Relationships: [];
       };
       email_drafts: {
         Row: {
@@ -178,6 +190,7 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["email_drafts"]["Row"]>;
+        Relationships: [];
       };
       agent_runs: {
         Row: {
@@ -198,6 +211,7 @@ export interface Database {
           agent_type: "research" | "decision_maker" | "qualification" | "personalization" | "email";
         };
         Update: Partial<Database["public"]["Tables"]["agent_runs"]["Row"]>;
+        Relationships: [];
       };
       suppressions: {
         Row: {
@@ -210,7 +224,10 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["suppressions"]["Row"]> & { email: string };
         Update: Partial<Database["public"]["Tables"]["suppressions"]["Row"]>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }

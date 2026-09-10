@@ -17,10 +17,15 @@
 
 .PARAMETER Environment
     Trigger.dev environment to deploy to. Defaults to "prod".
+
+.PARAMETER DryRun
+    Build and validate the deploy (catches SDK-usage errors in trigger/ code)
+    without actually publishing a new version.
 #>
 
 param(
-    [string]$Environment = "prod"
+    [string]$Environment = "prod",
+    [switch]$DryRun
 )
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -60,8 +65,13 @@ try {
         exit $LASTEXITCODE
     }
 
-    Write-Output "Deploying Trigger.dev tasks (environment: $Environment, CLI version: $sdkVersion)..."
-    npx "trigger.dev@$sdkVersion" deploy --env $Environment
+    if ($DryRun) {
+        Write-Output "Dry-run deploying Trigger.dev tasks (environment: $Environment, CLI version: $sdkVersion)..."
+        npx "trigger.dev@$sdkVersion" deploy --env $Environment --dry-run
+    } else {
+        Write-Output "Deploying Trigger.dev tasks (environment: $Environment, CLI version: $sdkVersion)..."
+        npx "trigger.dev@$sdkVersion" deploy --env $Environment
+    }
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Trigger.dev deploy failed (exit code $LASTEXITCODE)."
         exit $LASTEXITCODE
@@ -70,4 +80,8 @@ try {
     Pop-Location
 }
 
-Write-Output "Trigger.dev deploy complete."
+if ($DryRun) {
+    Write-Output "Trigger.dev dry-run build complete."
+} else {
+    Write-Output "Trigger.dev deploy complete."
+}

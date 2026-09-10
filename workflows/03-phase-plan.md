@@ -61,11 +61,18 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] Rate limits, retry handling, send logging *(orchestration-level, later)*
 - [ ] Suppression/unsubscribe list enforced before every send *(orchestration-level, later)*
 
+## Orchestration (spec §21) — not a numbered phase in the original spec, sits under Phase 4-7
+- [x] `trigger/research-workflow.ts`: per-company pipeline (research → decision-maker → qualification → personalization → email), status transition to Supabase after every stage, per-company try/catch → FAILED on error — 2026-09-10, B7
+- [x] `trigger/campaign-workflow.ts`: fan-out via `batchTriggerAndWait`, chunked (default 20) for pause-checkpointing, idempotency keys per company, respects `MAX_COMPANIES_PER_CAMPAIGN`, resume is idempotent (only non-terminal-status companies re-triggered) — 2026-09-10, B7
+- [x] `lib/database/repository.ts` + `supabase-repository.ts`: DB access behind an interface so orchestration logic is unit-testable without a live Supabase project — 2026-09-10, B7
+- [x] `scripts/trigger-campaign.ts`: CLI harness to fire a campaign run without a frontend — 2026-09-10, B7
+- [x] Full mock-mode pipeline verified end-to-end in-process (reaches `EMAIL_READY`/`NEEDS_REVIEW`, per-page and per-company failure isolation, chunking/pause/resume) — 2026-09-10, B7, 10 new tests; **not yet verified against a live Supabase + deployed Trigger.dev environment** (blocked on Supabase linking, see B2's note)
+
 ## Cross-cutting (ongoing through every phase)
 - [x] Zod validation on all agent I/O and API payloads — 2026-09-10, B3 (`types/contracts/*`, 20 passing round-trip tests in `tests/unit/contracts.test.ts`)
-- [ ] Unit/integration/E2E tests per `04-testing.md`
-- [ ] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end
-- [ ] Lint, typecheck, and build pass after each phase (spec §34)
+- [x] Unit/integration/E2E tests per `04-testing.md` — 92 passing tests as of B7 (unit + integration; no E2E yet, that needs the frontend)
+- [x] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end — verified in-process via `tests/unit/research-workflow.test.ts`; live Trigger.dev dev-mode run still pending Supabase linking
+- [x] Lint, typecheck, and build pass after each phase (spec §34) — maintained through B1-B7; Trigger.dev dry-run build also verified after B7
 
 ## Definition of done (spec §33)
 

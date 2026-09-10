@@ -75,6 +75,9 @@ function sleep(ms: number): Promise<void> {
  * companies to continue" -- the same isolation principle applied at the
  * page level here).
  */
+/** Type alias for dependency injection (see trigger/research-workflow.ts's ProcessCompanyDeps). */
+export type CrawlWebsiteFn = typeof crawlWebsite;
+
 export async function crawlWebsite(startUrl: string, options: CrawlOptions = {}): Promise<CrawlResult> {
   const {
     maxPages = DEFAULT_MAX_PAGES,

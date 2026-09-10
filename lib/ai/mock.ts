@@ -8,7 +8,8 @@ import type { AIProvider, GenerateJsonParams } from "./types";
  * (not a special-cased bypass).
  */
 
-const FIXTURES: Record<GenerateJsonParams["agentType"], unknown> = {
+// "personalization" and "email" are built dynamically (see buildPersonalizationFixture / buildEmailFixture below) rather than listed here.
+const FIXTURES: Record<Exclude<GenerateJsonParams["agentType"], "personalization" | "email">, unknown> = {
   research: {
     companySummary: "Acme Logistics is a freight and warehousing company operating in West Africa.",
     industry: "Logistics",
@@ -63,39 +64,58 @@ const FIXTURES: Record<GenerateJsonParams["agentType"], unknown> = {
     ],
     riskFlags: [],
   },
-  personalization: {
-    openingHook: {
-      text: "Noticed Acme Logistics just expanded into Ghana.",
-      evidenceIds: ["mock-finding-1"],
-    },
-    businessObservation: {
-      text: "Scaling warehousing across two countries raises visibility challenges.",
-      evidenceIds: ["mock-finding-1"],
-    },
-    opportunity: {
-      text: "No visible carrier API integration suggests manual tracking overhead.",
-      evidenceIds: ["mock-finding-1"],
-    },
-    valueConnection: {
-      text: "Our platform gives logistics teams real-time freight visibility during expansion.",
-      evidenceIds: [],
-    },
-    overallConfidence: 0.8,
-  },
-  email: {
-    subject: "Quick question about your Ghana expansion",
-    body: "Hi Jane, noticed Acme Logistics just expanded into Ghana -- congrats. Scaling warehousing across two countries usually means more manual tracking overhead until systems catch up. We help logistics teams get real-time freight visibility during exactly this kind of expansion. Worth a quick chat?",
-    cta: "Open to a 15-minute call this week?",
-    personalizationHook: "Ghana expansion",
-    evidenceIds: ["mock-finding-1"],
-    confidence: 0.8,
-  },
 };
+
+/**
+ * Extracts finding/evidence ids embedded in a prompt's JSON payload (e.g.
+ * `"id": "finding-abc123"` or `"evidenceIds": ["finding-abc123"]`). The
+ * personalization and email agents' Zod schemas reject an evidenceId that
+ * doesn't match a real finding they were given (agents/personalization-agent.ts,
+ * agents/email-agent.ts) -- since those real ids are assigned by the
+ * database repository at runtime (see lib/database/supabase-repository.ts's
+ * replaceResearch), a static fixture can't reference them. Pulling the ids
+ * out of the prompt itself keeps the mock provider fully deterministic and
+ * dependency-free while still producing a response that passes validation.
+ */
+function extractIds(userPrompt: string, key: "id" | "evidenceIds"): string[] {
+  const pattern = key === "id" ? /"id":\s*"([^"]+)"/g : /"evidenceIds":\s*\[\s*"([^"]+)"/g;
+  return Array.from(userPrompt.matchAll(pattern)).map((m) => m[1]!);
+}
+
+function buildPersonalizationFixture(userPrompt: string) {
+  const evidenceId = extractIds(userPrompt, "id")[0] ?? "unknown-finding";
+  return {
+    openingHook: { text: "Noticed a relevant recent development for this company.", evidenceIds: [evidenceId] },
+    businessObservation: { text: "Their current scale suggests an operational gap.", evidenceIds: [evidenceId] },
+    opportunity: { text: "This looks like a good fit for the offer.", evidenceIds: [evidenceId] },
+    valueConnection: { text: "Our platform addresses exactly this kind of gap.", evidenceIds: [] },
+    overallConfidence: 0.8,
+  };
+}
+
+function buildEmailFixture(userPrompt: string) {
+  const evidenceIds = extractIds(userPrompt, "evidenceIds");
+  const evidenceId = evidenceIds[0] ?? "unknown-finding";
+  return {
+    subject: "Quick question about your recent growth",
+    body: "Hi there, noticed some recent developments worth a quick conversation. We help companies like yours close exactly this kind of gap with real-time visibility. Worth a short call this week to see if it's a fit?",
+    cta: "Open to a 15-minute call this week?",
+    personalizationHook: "Recent development",
+    evidenceIds: [evidenceId],
+    confidence: 0.8,
+  };
+}
 
 export class MockAIProvider implements AIProvider {
   readonly name = "mock";
 
   async generateJson(params: GenerateJsonParams): Promise<string> {
+    if (params.agentType === "personalization") {
+      return JSON.stringify(buildPersonalizationFixture(params.userPrompt));
+    }
+    if (params.agentType === "email") {
+      return JSON.stringify(buildEmailFixture(params.userPrompt));
+    }
     return JSON.stringify(FIXTURES[params.agentType]);
   }
 }
