@@ -62,7 +62,7 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 - [ ] Suppression/unsubscribe list enforced before every send
 
 ## Cross-cutting (ongoing through every phase)
-- [ ] Zod validation on all agent I/O and API payloads
+- [x] Zod validation on all agent I/O and API payloads — 2026-09-10, B3 (`types/contracts/*`, 20 passing round-trip tests in `tests/unit/contracts.test.ts`)
 - [ ] Unit/integration/E2E tests per `04-testing.md`
 - [ ] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end
 - [ ] Lint, typecheck, and build pass after each phase (spec §34)
