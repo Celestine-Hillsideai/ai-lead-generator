@@ -4,6 +4,8 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 
 **2026-09-10:** starting a backend-only build track (Trigger.dev workflow, no Next.js frontend yet — see `docs/spec.md`'s note under §24 and `CLAUDE.md`). This intentionally does the non-UI portions of Phases 1 and 3–7 first; the frontend-dependent items below stay unchecked until that separate session happens. Tracked as sub-phases B1–B8 in the corresponding plan.
 
+**B8 status:** `tools/seed-mock-data.ts` is implemented (creates a test auth user, a campaign, and 4 companies — one with a deliberately unresolvable domain to exercise failure isolation for real). Everything from here needs the user's own Supabase project linked (`supabase link`, `supabase db push` via `tools/supabase-migrate.ps1`) — credentials can't flow through the agent session. Once linked: `npx tsx tools/seed-mock-data.ts`, then `npm run trigger:campaign -- <campaignId>` (with `npx trigger.dev dev` running) to verify live, then `tools/deploy-trigger.ps1` for the real deploy. See the chat for the full step-by-step.
+
 ## Phase 1 — Foundation
 - [ ] Next.js + TypeScript project scaffolded *(deferred — frontend session)*
 - [ ] Claude Frontend Design Skill applied to base UI shell (not a generic dashboard template — spec §1) *(deferred — frontend session)*
