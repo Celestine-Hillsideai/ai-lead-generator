@@ -7,6 +7,7 @@ import { Badge } from "../ui/badge";
 import { Input, Textarea, Label } from "../ui/input";
 import { Card, CardBody, CardHeader, CardTitle } from "../ui/card";
 import { EvidenceDrawer, type EvidenceFinding } from "./evidence-drawer";
+import { DraftHistory, type DraftEvent } from "./draft-history";
 
 export interface EmailDraftData {
   id: string;
@@ -17,6 +18,9 @@ export interface EmailDraftData {
   confidence: number | null;
   status: string;
 }
+
+/** Bulk-approval eligibility, per docs/spec.md §19 -- kept in sync with the server-side floor in app/actions/emails.ts. */
+export const BULK_APPROVE_MIN_CONFIDENCE = 0.8;
 
 const STATUS_TONE: Record<string, "neutral" | "success" | "danger" | "accent"> = {
   DRAFT: "neutral",
@@ -32,10 +36,19 @@ export function EmailDraftCard({
   draft,
   allFindings,
   revalidatePathTarget,
+  history = [],
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   draft: EmailDraftData;
   allFindings: EvidenceFinding[];
   revalidatePathTarget: string;
+  history?: DraftEvent[];
+  /** Approvals queue passes these to enable bulk-approve checkboxes; the lead detail page omits them. */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (draftId: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -44,6 +57,7 @@ export function EmailDraftCard({
   const [error, setError] = useState<string | null>(null);
 
   const canAct = draft.status === "READY";
+  const bulkEligible = canAct && (draft.confidence ?? 0) >= BULK_APPROVE_MIN_CONFIDENCE;
 
   function run(action: () => Promise<{ error?: string }>) {
     setError(null);
@@ -56,7 +70,19 @@ export function EmailDraftCard({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <CardTitle>Email draft</CardTitle>
+        <div className="flex items-center gap-3">
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={!bulkEligible}
+              onChange={() => onToggleSelect?.(draft.id)}
+              title={bulkEligible ? "Select for bulk approval" : `Only drafts at ${Math.round(BULK_APPROVE_MIN_CONFIDENCE * 100)}%+ confidence are bulk-approvable`}
+              className="h-4 w-4 rounded border-border-strong accent-accent-500"
+            />
+          )}
+          <CardTitle>Email draft</CardTitle>
+        </div>
         <div className="flex items-center gap-2">
           {draft.confidence !== null && (
             <span className="text-xs text-ink-faint">{Math.round(draft.confidence * 100)}% confidence</span>
@@ -146,6 +172,8 @@ export function EmailDraftCard({
             )
           )}
         </div>
+
+        <DraftHistory events={history} />
       </CardBody>
     </Card>
   );

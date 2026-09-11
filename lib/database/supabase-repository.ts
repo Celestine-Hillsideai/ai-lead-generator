@@ -12,6 +12,8 @@ import type {
   NewAgentRun,
 } from "./repository";
 import type { CompanyResearchStatus, FactType } from "../../types/status";
+import type { UserSettings } from "../../types/settings";
+import { DEFAULT_QUALIFICATION_WEIGHTS } from "../../types/contracts";
 
 const TERMINAL_STATUSES: CompanyResearchStatus[] = ["EMAIL_READY", "NEEDS_REVIEW", "APPROVED", "FAILED"];
 
@@ -29,6 +31,26 @@ export class SupabaseCampaignRepository implements CampaignPipelineRepository {
     const { data, error } = await this.db.from("companies").select("*").eq("id", companyId).single();
     if (error || !data) throw new Error(`Company ${companyId} not found: ${error?.message}`);
     return data;
+  }
+
+  async getUserSettings(userId: string): Promise<UserSettings | null> {
+    const { data, error } = await this.db.from("user_settings").select("*").eq("user_id", userId).maybeSingle();
+    if (error) throw new Error(`Failed to load settings for user ${userId}: ${error.message}`);
+    if (!data) return null;
+
+    return {
+      aiProvider: data.ai_provider as "openai" | "anthropic",
+      aiModel: data.ai_model,
+      emailProvider: data.email_provider as "mock" | "resend",
+      maxPagesPerCompany: data.max_pages_per_company,
+      maxCompaniesPerCampaign: data.max_companies_per_campaign,
+      qualificationWeights: {
+        ...DEFAULT_QUALIFICATION_WEIGHTS,
+        ...(data.qualification_weights as Record<string, number>),
+      },
+      senderName: data.sender_name,
+      senderEmail: data.sender_email,
+    };
   }
 
   async getCompaniesToProcess(campaignId: string, limit: number): Promise<CompanyRow[]> {

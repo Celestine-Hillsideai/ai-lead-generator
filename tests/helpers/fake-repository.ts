@@ -10,6 +10,7 @@ import type {
   NewAgentRun,
 } from "../../lib/database/repository";
 import type { CompanyResearchStatus } from "../../types/status";
+import type { UserSettings } from "../../types/settings";
 
 let idCounter = 0;
 function nextId(prefix: string): string {
@@ -33,6 +34,11 @@ export class FakeCampaignRepository implements CampaignPipelineRepository {
   qualifications: (NewQualification & { companyId: string })[] = [];
   contactsByCompany = new Map<string, NewContact[]>();
   findingsByCompany = new Map<string, (NewResearchFinding & { id: string })[]>();
+  userSettings = new Map<string, UserSettings>();
+
+  async getUserSettings(userId: string): Promise<UserSettings | null> {
+    return this.userSettings.get(userId) ?? null;
+  }
 
   seedCampaign(overrides: Partial<CampaignRow> & { id: string }): CampaignRow {
     const campaign: CampaignRow = {

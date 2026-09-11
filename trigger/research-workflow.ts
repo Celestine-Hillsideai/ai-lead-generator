@@ -2,7 +2,7 @@ import { task } from "@trigger.dev/sdk";
 import { getSupabaseServiceClient } from "../lib/database/client";
 import { SupabaseCampaignRepository } from "../lib/database/supabase-repository";
 import type { CampaignPipelineRepository, NewAgentRun } from "../lib/database/repository";
-import { getAIProvider } from "../lib/ai";
+import { getAIProvider, type AIProviderOverride } from "../lib/ai";
 import type { AIProvider } from "../lib/ai/types";
 import { getSearchProvider } from "../lib/search";
 import type { SearchProvider } from "../lib/search/types";
@@ -13,6 +13,8 @@ import { runQualificationAgent } from "../agents/qualification-agent";
 import { runPersonalizationAgent } from "../agents/personalization-agent";
 import { runEmailAgent, needsReview } from "../agents/email-agent";
 import type { AgentType } from "../types/status";
+import type { UserSettings } from "../types/settings";
+import { DEFAULT_QUALIFICATION_WEIGHTS } from "../types/contracts";
 
 /**
  * Per-company pipeline, per docs/spec.md §21: research -> decision-maker
@@ -25,7 +27,10 @@ import type { AgentType } from "../types/status";
 
 export interface ProcessCompanyDeps {
   repository: CampaignPipelineRepository;
+  /** Default/fallback provider -- used as-is when the campaign owner has no saved settings (or none exist). */
   aiProvider: AIProvider;
+  /** Builds a provider from the owner's saved settings (types/settings.ts). Defaults to always returning `aiProvider` unchanged, so existing tests that don't set this are unaffected by settings. */
+  resolveAIProvider?: (settings: UserSettings | null) => AIProvider;
   searchProvider: SearchProvider;
   crawlWebsite: CrawlWebsiteFn;
   maxPagesPerCompany?: number;
@@ -76,10 +81,18 @@ async function withAgentRun<T>(
 
 export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: ProcessCompanyPayload): Promise<void> {
   const { repository: repo } = deps;
-  const maxPages = deps.maxPagesPerCompany ?? Number(process.env.MAX_PAGES_PER_COMPANY ?? 15);
 
   const company = await repo.getCompany(payload.companyId);
   const campaign = await repo.getCampaign(payload.campaignId);
+
+  // Campaign owner's saved settings (types/settings.ts) override env-var
+  // defaults for this run, per docs/spec.md §7 -- null if they've never
+  // saved settings, in which case every value below falls back exactly to
+  // what this workflow did before settings existed.
+  const settings = await repo.getUserSettings(campaign.user_id);
+  const aiProvider = (deps.resolveAIProvider ?? ((_s: UserSettings | null) => deps.aiProvider))(settings);
+  const maxPages = settings?.maxPagesPerCompany ?? deps.maxPagesPerCompany ?? Number(process.env.MAX_PAGES_PER_COMPANY ?? 15);
+  const qualificationWeights = settings?.qualificationWeights ?? DEFAULT_QUALIFICATION_WEIGHTS;
 
   try {
     await repo.updateCompanyStatus(company.id, "RESEARCHING");
@@ -88,7 +101,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
     const research = await withAgentRun(
       repo,
       { campaignId: campaign.id, companyId: company.id, agentType: "research", input: { website: company.website } },
-      () => runResearchAgent(deps.aiProvider, { companyName: company.name, website: company.website, pages: crawl.pages })
+      () => runResearchAgent(aiProvider, { companyName: company.name, website: company.website, pages: crawl.pages })
     );
 
     const sourceUrls = new Set(research.findings.map((f) => f.sourceUrl));
@@ -116,7 +129,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
       repo,
       { campaignId: campaign.id, companyId: company.id, agentType: "decision_maker", input: { targetRoles: campaign.target_roles } },
       () =>
-        runDecisionMakerAgent(deps.aiProvider, deps.searchProvider, {
+        runDecisionMakerAgent(aiProvider, deps.searchProvider, {
           companyName: company.name,
           companyDomain: company.normalized_domain,
           targetRoles: campaign.target_roles,
@@ -143,7 +156,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
       repo,
       { campaignId: campaign.id, companyId: company.id, agentType: "qualification", input: {} },
       () =>
-        runQualificationAgent(deps.aiProvider, {
+        runQualificationAgent(aiProvider, {
           campaign: {
             industry: campaign.industry,
             geography: campaign.geography,
@@ -153,6 +166,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
           },
           research,
           decisionMakers,
+          weights: qualificationWeights,
         })
     );
     await repo.insertQualification(company.id, qualification);
@@ -173,7 +187,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
       repo,
       { campaignId: campaign.id, companyId: company.id, agentType: "personalization", input: {} },
       () =>
-        runPersonalizationAgent(deps.aiProvider, {
+        runPersonalizationAgent(aiProvider, {
           campaign: {
             offerDescription: campaign.offer_description,
             valueProposition: campaign.value_proposition,
@@ -197,7 +211,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
       repo,
       { campaignId: campaign.id, companyId: company.id, agentType: "email", input: {} },
       () =>
-        runEmailAgent(deps.aiProvider, {
+        runEmailAgent(aiProvider, {
           campaign: {
             offerDescription: campaign.offer_description,
             valueProposition: campaign.value_proposition,
@@ -238,6 +252,10 @@ export const researchWorkflow = task({
       {
         repository: new SupabaseCampaignRepository(db),
         aiProvider: getAIProvider(),
+        resolveAIProvider: (settings) =>
+          getAIProvider(
+            settings ? ({ provider: settings.aiProvider, model: settings.aiModel } satisfies AIProviderOverride) : undefined
+          ),
         searchProvider: getSearchProvider(),
         crawlWebsite,
       },

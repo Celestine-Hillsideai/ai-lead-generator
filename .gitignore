@@ -6,6 +6,11 @@ dist/
 .next/
 next-env.d.ts
 
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 .claude/
 
 supabase/.temp/

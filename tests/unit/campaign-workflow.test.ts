@@ -128,4 +128,41 @@ describe("processCampaign", () => {
 
     expect(triggered).toEqual(["comp-pending"]);
   });
+
+  it("uses the campaign owner's saved max-companies setting when deps.maxCompanies isn't explicitly overridden", async () => {
+    const repo = new FakeCampaignRepository();
+    repo.seedCampaign({ id: "camp-1", status: "PROCESSING", user_id: "user-1" });
+    seedCompanies(repo, "camp-1", 10);
+    repo.userSettings.set("user-1", {
+      aiProvider: "openai",
+      aiModel: null,
+      emailProvider: "mock",
+      maxPagesPerCompany: 15,
+      maxCompaniesPerCampaign: 2,
+      qualificationWeights: {
+        industryFit: 0.25,
+        companySize: 0.15,
+        geographicFit: 0.1,
+        problemOpportunity: 0.25,
+        decisionMakerFit: 0.15,
+        buyingSignal: 0.1,
+      },
+      senderName: null,
+      senderEmail: null,
+    });
+
+    let totalTriggered = 0;
+    await processCampaign(
+      {
+        repository: repo,
+        triggerResearchBatch: async (items) => {
+          totalTriggered += items.length;
+          return items.map((item): TriggerResearchResult => ({ companyId: item.companyId, ok: true }));
+        },
+      },
+      { campaignId: "camp-1" }
+    );
+
+    expect(totalTriggered).toBe(2);
+  });
 });

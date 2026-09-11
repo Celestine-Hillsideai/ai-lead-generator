@@ -106,4 +106,111 @@ describe("processCompanyResearch", () => {
     expect(company.research_status).toBe("NEEDS_REVIEW");
     expect(repo.emailDrafts).toHaveLength(0);
   });
+
+  it("uses the campaign owner's saved qualification weights instead of the defaults", async () => {
+    const repo = setup();
+    repo.userSettings.set("user-1", {
+      aiProvider: "openai",
+      aiModel: null,
+      emailProvider: "mock",
+      maxPagesPerCompany: 15,
+      maxCompaniesPerCampaign: 200,
+      // All weight on industryFit (the mock qualification fixture's industryScore is 90),
+      // zero everywhere else -- overall score should land at exactly the raw
+      // industryScore regardless of the mock's other sub-scores, which would
+      // pull the total to a different value under the default weights.
+      qualificationWeights: {
+        industryFit: 1,
+        companySize: 0,
+        geographicFit: 0,
+        problemOpportunity: 0,
+        decisionMakerFit: 0,
+        buyingSignal: 0,
+      },
+      senderName: null,
+      senderEmail: null,
+    });
+
+    await processCompanyResearch(
+      { repository: repo, aiProvider: new MockAIProvider(), searchProvider: new MockSearchProvider(), crawlWebsite: fakeCrawl },
+      { campaignId: "camp-1", companyId: "comp-1" }
+    );
+
+    expect(repo.qualifications[0]!.score).toBe(90);
+  });
+
+  it("uses the campaign owner's saved max-pages-per-company setting for the crawl", async () => {
+    const repo = setup();
+    repo.userSettings.set("user-1", {
+      aiProvider: "openai",
+      aiModel: null,
+      emailProvider: "mock",
+      maxPagesPerCompany: 3,
+      maxCompaniesPerCampaign: 200,
+      qualificationWeights: {
+        industryFit: 0.25,
+        companySize: 0.15,
+        geographicFit: 0.1,
+        problemOpportunity: 0.25,
+        decisionMakerFit: 0.15,
+        buyingSignal: 0.1,
+      },
+      senderName: null,
+      senderEmail: null,
+    });
+
+    let capturedMaxPages: number | undefined;
+    const crawlSpy = async (_url: string, options?: { maxPages?: number }): Promise<CrawlResult> => {
+      capturedMaxPages = options?.maxPages;
+      return fakeCrawl();
+    };
+
+    await processCompanyResearch(
+      { repository: repo, aiProvider: new MockAIProvider(), searchProvider: new MockSearchProvider(), crawlWebsite: crawlSpy },
+      { campaignId: "camp-1", companyId: "comp-1" }
+    );
+
+    expect(capturedMaxPages).toBe(3);
+  });
+
+  it("resolveAIProvider is consulted with the owner's settings and its returned provider is actually used", async () => {
+    const repo = setup();
+    repo.userSettings.set("user-1", {
+      aiProvider: "anthropic",
+      aiModel: null,
+      emailProvider: "mock",
+      maxPagesPerCompany: 15,
+      maxCompaniesPerCampaign: 200,
+      qualificationWeights: {
+        industryFit: 0.25,
+        companySize: 0.15,
+        geographicFit: 0.1,
+        problemOpportunity: 0.25,
+        decisionMakerFit: 0.15,
+        buyingSignal: 0.1,
+      },
+      senderName: null,
+      senderEmail: null,
+    });
+
+    const defaultProvider = new MockAIProvider();
+    const alternateProvider = new MockAIProvider();
+    let resolveCalledWithProvider: string | undefined;
+
+    await processCompanyResearch(
+      {
+        repository: repo,
+        aiProvider: defaultProvider,
+        resolveAIProvider: (settings) => {
+          resolveCalledWithProvider = settings?.aiProvider;
+          return alternateProvider;
+        },
+        searchProvider: new MockSearchProvider(),
+        crawlWebsite: fakeCrawl,
+      },
+      { campaignId: "camp-1", companyId: "comp-1" }
+    );
+
+    expect(resolveCalledWithProvider).toBe("anthropic");
+  });
 });

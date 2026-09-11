@@ -7,8 +7,8 @@ Per `docs/spec.md` §30. Stack: Vitest (unit/integration), React Testing Library
 - **Unit tests:** URL normalization, CSV parsing, ICP scoring math, Zod validation schemas, SSRF protection (reject localhost/private/link-local targets), deduplication logic. These are pure-function tests — no network, no DB.
 - **Agent contract tests:** each agent in `agents/` tested against mocked provider responses (`MOCK_AI=true` etc.) — verify the agent produces schema-valid output for representative inputs, and handles malformed model output via the repair/retry path (spec §22).
 - **Integration tests:** research → qualification → personalization → email generation, chained together with mock providers, against a real (test) Supabase instance to catch schema/RLS mismatches.
-- **End-to-end (Playwright):** the full flow — Login → Create Campaign → Upload CSV → Process → Review Lead → Approve → Export — against the running app in mock mode.
-- **Permission isolation tests:** verify RLS actually prevents user A from reading/writing user B's campaigns/companies/contacts/emails.
+- **End-to-end (Playwright):** `tests/e2e/`, runs against a **production build** (`next build` + `next start`), not `next dev` — dev mode's on-demand per-route compilation caused severe flakiness on a slow machine (concurrent navigations across routes triggered simultaneous recompiles). Currently covers Login → Create Campaign → Upload CSV → Start Processing, plus Settings editing and the Approvals page loading; see `tests/e2e/README.md` for why Review/Approve/Export aren't covered yet (needs a live `trigger.dev dev` worker) and how to extend it once one's running.
+- **Permission isolation tests:** verify RLS actually prevents user A from reading/writing user B's campaigns/companies/contacts/emails. Not yet written as an automated test — todo.
 
 ## Rules
 

@@ -61,8 +61,8 @@ Dropped `eslint-config-next` from devDependencies after it repeatedly triggered 
 
 ## Phase 8 — Approval
 - [x] Approval queue: approve/reject/edit/regenerate (spec §19) — 2026-09-11, F8 (`app/(app)/approvals/page.tsx`, `components/leads/email-draft-card.tsx`, `app/actions/emails.ts`; regenerate re-runs the real Email Generation Agent against the draft's own stored evidence, not a fake/canned edit)
-- [ ] Bulk approval, restricted to high-confidence records *(not implemented — per-draft actions only)*
-- [ ] Approval/rejection timestamps and state history *(status transitions happen; no separate audit-log table/UI yet)*
+- [x] Bulk approval, restricted to high-confidence records — 2026-09-11 (`components/leads/approval-queue.tsx`, `bulkApproveEmailsAction` in `app/actions/emails.ts`; ≥80% confidence floor enforced server-side against the real DB rows, not just client-side selection)
+- [x] Approval/rejection timestamps and state history — 2026-09-11 (`email_draft_events` table, `supabase/migrations/20260911090000_settings_and_audit.sql`; every approve/reject/edit/regenerate writes an event; displayed via `components/leads/draft-history.tsx`)
 
 ## Phase 9 — Export
 - [x] Approved-only CSV export — 2026-09-11, F10 (`app/api/campaigns/[campaignId]/export/route.ts`, a Route Handler so it's a real file download, not a Server Action)
@@ -82,17 +82,25 @@ Dropped `eslint-config-next` from devDependencies after it repeatedly triggered 
 
 ## Cross-cutting (ongoing through every phase)
 - [x] Zod validation on all agent I/O and API payloads — 2026-09-10, B3 (`types/contracts/*`, 20 passing round-trip tests in `tests/unit/contracts.test.ts`)
-- [x] Unit/integration tests per `04-testing.md` — 92 passing tests, unchanged through the frontend track (no frontend component/E2E tests yet — Playwright is specced in `04-testing.md` but not set up; that's a real gap)
+- [x] Unit/integration tests per `04-testing.md` — 96 passing Vitest tests; 7 passing Playwright E2E tests (`tests/e2e/`, see 2026-09-11 note below) covering login/logout, invalid credentials, create-campaign-through-start-processing, settings editing, and the approvals page loading
 - [x] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end — verified live against Supabase + Trigger.dev, 2026-09-10/11 (B8)
 - [x] Lint, typecheck, and build pass after each phase (spec §34) — maintained through B1-B7 and F1-F10; `npm run build` (Next.js production build) verified passing 2026-09-11
 
 **2026-09-11: F11, Vercel deployment.** Pushed to GitHub (`Celestine-Hillsideai/ai-lead-generator`, private), linked to Vercel (`hillsideai/ai-lead-generator`), env vars set (Supabase URL/anon key as public config, `TRIGGER_SECRET_KEY` prod key as a secret, mock-mode/cost-control vars for the settings page display). First `vercel --prod` CLI upload failed twice with a generic `fetch failed` (same flaky-large-transfer pattern seen during npm installs); the GitHub-integration-triggered deploy (empty commit + push) succeeded both times it was tried, so that's the documented path in `01-deployment.md` now. Discovered and fixed: new Vercel projects default to "Vercel Authentication" (SSO) deployment protection, which silently blocked all access including real users -- disabled via `vercel project protection disable ai-lead-generator --sso`. Corrected `05-env-vars.md`: `SUPABASE_SERVICE_ROLE_KEY` was documented as needed on Vercel but nothing in `app/` actually uses it (every Server Action/Route Handler goes through the RLS-scoped anon-key client) -- not set on Vercel. Live at https://ai-lead-generator-hillsideai.vercel.app, verified via curl (root redirects to `/login`, login page renders with the real design-system classes).
 
+**2026-09-11: settings, bulk approval, audit history, Playwright E2E.** Added `user_settings` + `email_draft_events` tables (`supabase/migrations/20260911090000_settings_and_audit.sql`, applied live). Settings are genuinely wired into the pipeline, not just stored: `trigger/research-workflow.ts` looks up the campaign owner's settings and uses their `aiProvider`/`aiModel` (via a new `resolveAIProvider` hook, so existing tests are unaffected unless they opt in), `qualificationWeights`, and `maxPagesPerCompany`; `trigger/campaign-workflow.ts` uses their `maxCompaniesPerCampaign`. Proven with 4 new tests that actually assert different settings produce different behavior (a custom weight changes the computed score, a custom page limit reaches the crawler, `resolveAIProvider` is called with the saved provider) rather than just checking the code compiles. `emailProvider`/`senderName`/`senderEmail` are stored but explicitly documented (in `types/settings.ts` and the settings UI itself) as not yet consumed — sending still isn't wired into orchestration.
+
+Bulk approval and audit history: see Phase 8 above.
+
+Playwright E2E (`tests/e2e/`): initially very flaky against `next dev` (concurrent route compilation on a slow machine caused `SyntaxError: Unexpected end of JSON input` and 30s timeouts) — switched to running against a production build (`next build` + `next start`), which fixed it completely (7/7 passing, ~55s). `tests/e2e/global-setup.ts` pre-creates a confirmed test user via the Supabase admin API rather than exercising live signup (email-confirmation requirements are project-specific and shouldn't gate whether auth *tests* can run). Also learned (again) that background dev/prod server processes started without disabling this sandbox can fail to reach Supabase — same pattern as earlier npm/GitHub connectivity issues.
+
+Migration applied live via `tools/supabase-migrate.ps1`'s underlying command; real types regenerated into `lib/database/types.generated.ts`.
+
 ## Not yet done
-- [ ] Playwright E2E covering the golden path (spec §30)
-- [ ] Editable settings (weights, sender info, provider selection) — currently read-only, env-driven
-- [ ] Bulk approval, approval/rejection audit history (Phase 8, see above)
 - [ ] Next.js/React-specific ESLint rules (dropped `eslint-config-next` due to install fragility)
+- [ ] Editable sender info / email provider selection actually affecting a real send (sending itself isn't wired into orchestration yet)
+- [ ] Playwright coverage of Review Lead → Approve → Export (needs a live `trigger.dev dev` worker alongside the test run — see `tests/e2e/README.md`)
+- [ ] RLS permission-isolation automated test (`04-testing.md`)
 
 ## Definition of done (spec §33)
 

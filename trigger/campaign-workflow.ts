@@ -44,7 +44,15 @@ export async function processCampaign(
   payload: CampaignOrchestrationPayload
 ): Promise<CampaignOrchestrationResult> {
   const chunkSize = deps.chunkSize ?? 20;
-  const maxCompanies = deps.maxCompanies ?? Number(process.env.MAX_COMPANIES_PER_CAMPAIGN ?? 200);
+
+  // The campaign owner's saved max-companies setting (types/settings.ts)
+  // overrides the env-var default, per docs/spec.md §7/§28.
+  let maxCompanies = deps.maxCompanies;
+  if (maxCompanies === undefined) {
+    const campaign = await deps.repository.getCampaign(payload.campaignId);
+    const settings = await deps.repository.getUserSettings(campaign.user_id);
+    maxCompanies = settings?.maxCompaniesPerCampaign ?? Number(process.env.MAX_COMPANIES_PER_CAMPAIGN ?? 200);
+  }
 
   // Only non-terminal-status companies -- makes a resume (re-triggering with
   // the same campaignId) idempotent and cheap, per workflows/00-architecture.md.

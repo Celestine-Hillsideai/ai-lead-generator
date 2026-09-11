@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "../../../../../../lib/supabase/server";
-import { getCompanyDetail } from "../../../../../../lib/database/queries";
+import { getCompanyDetail, getEmailDraftHistory } from "../../../../../../lib/database/queries";
 import { PageHeader } from "../../../../../../components/layout/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "../../../../../../components/ui/card";
 import { Badge, TierBadge } from "../../../../../../components/ui/badge";
@@ -86,14 +86,17 @@ export default async function LeadDetailPage({
             </CardBody>
           </Card>
 
-          {emailDrafts.map((draft) => (
-            <EmailDraftCard
-              key={draft.id}
-              draft={draft}
-              allFindings={allFindings}
-              revalidatePathTarget={revalidatePathTarget}
-            />
-          ))}
+          {await Promise.all(
+            emailDrafts.map(async (draft) => (
+              <EmailDraftCard
+                key={draft.id}
+                draft={draft}
+                allFindings={allFindings}
+                revalidatePathTarget={revalidatePathTarget}
+                history={await getEmailDraftHistory(supabase, draft.id)}
+              />
+            ))
+          )}
         </div>
 
         <div className="space-y-6">

@@ -242,6 +242,51 @@ export type Database = {
           },
         ]
       }
+      email_draft_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          email_draft_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          email_draft_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          email_draft_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_draft_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_draft_events_email_draft_id_fkey"
+            columns: ["email_draft_id"]
+            isOneToOne: false
+            referencedRelation: "email_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_drafts: {
         Row: {
           body: string
@@ -491,6 +536,56 @@ export type Database = {
             foreignKeyName: "suppressions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          ai_model: string | null
+          ai_provider: string
+          created_at: string
+          email_provider: string
+          max_companies_per_campaign: number
+          max_pages_per_company: number
+          qualification_weights: Json
+          sender_email: string | null
+          sender_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_provider?: string
+          created_at?: string
+          email_provider?: string
+          max_companies_per_campaign?: number
+          max_pages_per_company?: number
+          qualification_weights?: Json
+          sender_email?: string | null
+          sender_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model?: string | null
+          ai_provider?: string
+          created_at?: string
+          email_provider?: string
+          max_companies_per_campaign?: number
+          max_pages_per_company?: number
+          qualification_weights?: Json
+          sender_email?: string | null
+          sender_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },

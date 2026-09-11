@@ -6,6 +6,7 @@ import type {
   ContactEmailStatus,
   EmailDraftStatus,
 } from "../../types/status";
+import type { UserSettings } from "../../types/settings";
 
 /**
  * The subset of DB operations trigger/research-workflow.ts and
@@ -85,6 +86,8 @@ export interface NewAgentRun {
 export interface CampaignPipelineRepository {
   getCampaign(campaignId: string): Promise<CampaignRow>;
   getCompany(companyId: string): Promise<CompanyRow>;
+  /** null if the user has never saved settings -- callers fall back to env-var defaults (see types/settings.ts). */
+  getUserSettings(userId: string): Promise<UserSettings | null>;
   /** Companies not yet in a terminal status -- makes campaign resume idempotent (see workflows/00-architecture.md). */
   getCompaniesToProcess(campaignId: string, limit: number): Promise<CompanyRow[]>;
   isCampaignPaused(campaignId: string): Promise<boolean>;

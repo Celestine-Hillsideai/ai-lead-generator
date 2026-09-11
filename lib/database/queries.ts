@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types.generated";
+import { DEFAULT_USER_SETTINGS, type UserSettings } from "../../types/settings";
+import { DEFAULT_QUALIFICATION_WEIGHTS } from "../../types/contracts";
 
 /**
  * Read queries the frontend uses (as the authenticated user, RLS-scoped),
@@ -124,4 +126,35 @@ export async function getApprovalQueue(db: SupabaseClient<Database>, userId: str
     campaignName: campaignNameById.get(d.campaign_id) ?? "",
     company: companyById.get(d.company_id) ?? null,
   }));
+}
+
+/** Returns DEFAULT_USER_SETTINGS (not null) when the user has never saved settings, so the form always has something to render. */
+export async function getUserSettings(db: SupabaseClient<Database>, userId: string): Promise<UserSettings> {
+  const { data, error } = await db.from("user_settings").select("*").eq("user_id", userId).maybeSingle();
+  if (error) throw new Error(`Failed to load settings: ${error.message}`);
+  if (!data) return DEFAULT_USER_SETTINGS;
+
+  return {
+    aiProvider: data.ai_provider as "openai" | "anthropic",
+    aiModel: data.ai_model,
+    emailProvider: data.email_provider as "mock" | "resend",
+    maxPagesPerCompany: data.max_pages_per_company,
+    maxCompaniesPerCampaign: data.max_companies_per_campaign,
+    qualificationWeights: {
+      ...DEFAULT_QUALIFICATION_WEIGHTS,
+      ...(data.qualification_weights as Record<string, number>),
+    },
+    senderName: data.sender_name,
+    senderEmail: data.sender_email,
+  };
+}
+
+export async function getEmailDraftHistory(db: SupabaseClient<Database>, emailDraftId: string) {
+  const { data, error } = await db
+    .from("email_draft_events")
+    .select("*")
+    .eq("email_draft_id", emailDraftId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`Failed to load draft history: ${error.message}`);
+  return data ?? [];
 }
