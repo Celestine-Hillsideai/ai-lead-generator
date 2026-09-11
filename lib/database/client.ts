@@ -22,5 +22,18 @@ export function getSupabaseServiceClient() {
 
   return createClient<Database>(url, serviceRoleKey, {
     auth: { persistSession: false },
+    // supabase-js eagerly constructs a RealtimeClient on every createClient()
+    // call, even though this service-role client never opens a channel --
+    // and that constructor throws immediately if no global `WebSocket` is
+    // available and no transport override is given. Trigger.dev's task
+    // runtime doesn't expose one. Stub it out; it's never instantiated
+    // because nothing here calls .channel()/.removeChannel().
+    realtime: {
+      transport: class UnusedWebSocketTransport {
+        constructor() {
+          throw new Error("Realtime is not used by the Trigger.dev service-role client.");
+        }
+      } as unknown as typeof WebSocket,
+    },
   });
 }
