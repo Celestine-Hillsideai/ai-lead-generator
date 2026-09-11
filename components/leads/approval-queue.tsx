@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { bulkApproveEmailsAction } from "../../app/actions/emails";
 import { Button } from "../ui/button";
-import { EmailDraftCard, BULK_APPROVE_MIN_CONFIDENCE, type EmailDraftData } from "./email-draft-card";
+import { EmailDraftCard, BULK_APPROVE_MIN_CONFIDENCE, type EmailDraftData, type EmailRecipient } from "./email-draft-card";
 import type { EvidenceFinding } from "./evidence-drawer";
 import type { DraftEvent } from "./draft-history";
 
@@ -13,10 +13,11 @@ export interface ApprovalQueueEntry {
   companyName: string;
   findings: EvidenceFinding[];
   history: DraftEvent[];
+  recipient?: EmailRecipient | null;
 }
 
 /** Approval queue with bulk-approve, per docs/spec.md §19 ("restricted to high-confidence records"). */
-export function ApprovalQueue({ entries }: { entries: ApprovalQueueEntry[] }) {
+export function ApprovalQueue({ entries, selectable = true }: { entries: ApprovalQueueEntry[]; selectable?: boolean }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function ApprovalQueue({ entries }: { entries: ApprovalQueueEntry[] }) {
 
   return (
     <div className="space-y-4">
-      {eligible.length > 0 && (
+      {selectable && eligible.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border border-border bg-paper-sunken p-4">
           <span className="text-sm text-ink-muted">
             {selected.size} selected · {eligible.length} eligible for bulk approval (≥{Math.round(BULK_APPROVE_MIN_CONFIDENCE * 100)}% confidence)
@@ -73,7 +74,7 @@ export function ApprovalQueue({ entries }: { entries: ApprovalQueueEntry[] }) {
         </div>
       )}
 
-      {entries.map(({ draft, campaignName, companyName, findings, history }) => (
+      {entries.map(({ draft, campaignName, companyName, findings, history, recipient }) => (
         <div key={draft.id}>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-ink-muted">
             {campaignName} · {companyName}
@@ -83,9 +84,10 @@ export function ApprovalQueue({ entries }: { entries: ApprovalQueueEntry[] }) {
             allFindings={findings}
             revalidatePathTarget="/approvals"
             history={history}
-            selectable
+            selectable={selectable}
             selected={selected.has(draft.id)}
             onToggleSelect={toggle}
+            recipient={recipient}
           />
         </div>
       ))}

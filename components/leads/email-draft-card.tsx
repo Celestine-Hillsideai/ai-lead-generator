@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { approveEmailAction, rejectEmailAction, editEmailAction, regenerateEmailAction } from "../../app/actions/emails";
+import {
+  approveEmailAction,
+  rejectEmailAction,
+  editEmailAction,
+  regenerateEmailAction,
+  sendEmailAction,
+} from "../../app/actions/emails";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input, Textarea, Label } from "../ui/input";
@@ -32,6 +38,12 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "danger" | "accent"> =
   FAILED: "danger",
 };
 
+export interface EmailRecipient {
+  fullName: string | null;
+  email: string | null;
+  emailStatus: string | null;
+}
+
 export function EmailDraftCard({
   draft,
   allFindings,
@@ -40,6 +52,7 @@ export function EmailDraftCard({
   selectable = false,
   selected = false,
   onToggleSelect,
+  recipient = null,
 }: {
   draft: EmailDraftData;
   allFindings: EvidenceFinding[];
@@ -49,6 +62,8 @@ export function EmailDraftCard({
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (draftId: string) => void;
+  /** The contact this draft was written for (draft.contact_id) -- shown next to the Send action. */
+  recipient?: EmailRecipient | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -58,6 +73,9 @@ export function EmailDraftCard({
 
   const canAct = draft.status === "READY";
   const bulkEligible = canAct && (draft.confidence ?? 0) >= BULK_APPROVE_MIN_CONFIDENCE;
+  const canSend = draft.status === "APPROVED";
+  const sendBlockedReason =
+    !recipient?.email ? "No recipient email on file." : recipient.emailStatus === "invalid" ? "Recipient email is invalid." : null;
 
   function run(action: () => Promise<{ error?: string }>) {
     setError(null);
@@ -170,6 +188,31 @@ export function EmailDraftCard({
                 </Button>
               </>
             )
+          )}
+
+          {canSend && (
+            <>
+              <Button
+                size="sm"
+                disabled={isPending || !!sendBlockedReason}
+                title={sendBlockedReason ?? undefined}
+                onClick={() => run(() => sendEmailAction(draft.id, revalidatePathTarget))}
+              >
+                {isPending ? "Sending…" : "Send"}
+              </Button>
+              <span className="text-xs text-ink-faint">
+                {recipient?.email
+                  ? `to ${recipient.fullName ? `${recipient.fullName} ` : ""}<${recipient.email}>`
+                  : sendBlockedReason}
+              </span>
+            </>
+          )}
+
+          {(draft.status === "SENT" || draft.status === "FAILED") && recipient?.email && (
+            <span className="text-xs text-ink-faint">
+              {draft.status === "SENT" ? "Sent" : "Failed to send"} to {recipient.fullName ? `${recipient.fullName} ` : ""}
+              &lt;{recipient.email}&gt;
+            </span>
           )}
         </div>
 

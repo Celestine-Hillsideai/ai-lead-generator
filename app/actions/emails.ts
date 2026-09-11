@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { getAIProvider } from "../../lib/ai";
+import { getEmailProvider } from "../../lib/email";
+import { checkSendEligibility } from "../../lib/email/send-guard";
 import { runEmailAgent } from "../../agents/email-agent";
 import type { PersonalizationOutput } from "../../types/contracts";
 import type { Database } from "../../lib/database/types.generated";
@@ -221,6 +223,94 @@ export async function regenerateEmailAction(
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Failed to regenerate email." };
   }
+
+  revalidatePath(revalidatePathTarget);
+  return {};
+}
+
+/**
+ * Sends an already-approved draft through the configured EmailProvider, per
+ * docs/spec.md §19 ("Only approved emails can be exported or sent") and §20
+ * (provider abstraction, suppression/invalid-contact enforcement). Kept as
+ * a distinct action from approveEmailAction rather than auto-sending on
+ * approve -- spec §19 and CLAUDE.md's non-negotiables both frame approval
+ * and sending as separate human-gated steps.
+ */
+export async function sendEmailAction(emailDraftId: string, revalidatePathTarget: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: draft, error: draftError } = await supabase
+    .from("email_drafts")
+    .select("*")
+    .eq("id", emailDraftId)
+    .single();
+  if (draftError || !draft) return { error: draftError?.message ?? "Draft not found." };
+
+  if (draft.status !== "APPROVED") {
+    return { error: "Only approved drafts can be sent." };
+  }
+
+  const { data: contactRow } = await supabase
+    .from("contacts")
+    .select("email, email_status")
+    .eq("id", draft.contact_id ?? "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+
+  const { data: suppressions } = await supabase
+    .from("suppressions")
+    .select("email")
+    .or(`user_id.eq.${user?.id ?? "00000000-0000-0000-0000-000000000000"},campaign_id.eq.${draft.campaign_id}`);
+
+  const eligibility = checkSendEligibility(
+    contactRow ? { email: contactRow.email, emailStatus: contactRow.email_status } : null,
+    (suppressions ?? []).map((s) => s.email)
+  );
+  if (!eligibility.allowed) {
+    return { error: eligibility.reason };
+  }
+
+  const { data: settingsRow } = await supabase
+    .from("user_settings")
+    .select("sender_name, sender_email, email_provider")
+    .eq("user_id", user?.id ?? "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+
+  if (!settingsRow?.sender_email) {
+    return { error: "Set a sender email in Settings before sending." };
+  }
+  const fromAddress = settingsRow.sender_name ? `${settingsRow.sender_name} <${settingsRow.sender_email}>` : settingsRow.sender_email;
+
+  await supabase.from("email_drafts").update({ status: "SENDING" }).eq("id", emailDraftId);
+  await logEmailDraftEvent(supabase, emailDraftId, draft.status, "SENDING", user?.id ?? null);
+
+  const provider = getEmailProvider({ provider: settingsRow.email_provider as "mock" | "resend" });
+
+  let result;
+  try {
+    result = await provider.send({
+      to: contactRow!.email!,
+      from: fromAddress,
+      subject: draft.subject,
+      body: draft.body,
+      campaignId: draft.campaign_id,
+      contactId: draft.contact_id ?? "",
+    });
+  } catch (err) {
+    result = { success: false, error: err instanceof Error ? err.message : "Failed to send email." };
+  }
+
+  if (!result.success) {
+    await supabase.from("email_drafts").update({ status: "FAILED" }).eq("id", emailDraftId);
+    await logEmailDraftEvent(supabase, emailDraftId, "SENDING", "FAILED", user?.id ?? null, result.error ?? "Send failed");
+    revalidatePath(revalidatePathTarget);
+    return { error: result.error ?? "Failed to send email." };
+  }
+
+  await supabase.from("email_drafts").update({ status: "SENT" }).eq("id", emailDraftId);
+  await logEmailDraftEvent(supabase, emailDraftId, "SENDING", "SENT", user?.id ?? null, result.providerMessageId);
 
   revalidatePath(revalidatePathTarget);
   return {};

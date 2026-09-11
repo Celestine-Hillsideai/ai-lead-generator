@@ -99,7 +99,11 @@ export async function getCompanyDetail(db: SupabaseClient<Database>, companyId: 
   };
 }
 
-export async function getApprovalQueue(db: SupabaseClient<Database>, userId: string) {
+export async function getApprovalQueue(
+  db: SupabaseClient<Database>,
+  userId: string,
+  status: "READY" | "APPROVED" = "READY"
+) {
   const { data: campaigns } = await db.from("campaigns").select("id, name").eq("user_id", userId);
   const campaignIds = (campaigns ?? []).map((c) => c.id);
   if (campaignIds.length === 0) return [];
@@ -108,7 +112,7 @@ export async function getApprovalQueue(db: SupabaseClient<Database>, userId: str
     .from("email_drafts")
     .select("*")
     .in("campaign_id", campaignIds)
-    .eq("status", "READY")
+    .eq("status", status)
     .order("created_at", { ascending: true });
   if (error) throw new Error(`Failed to load approval queue: ${error.message}`);
 
@@ -118,13 +122,21 @@ export async function getApprovalQueue(db: SupabaseClient<Database>, userId: str
     .select("id, name, website, qualification_tier")
     .in("id", companyIds.length > 0 ? companyIds : ["00000000-0000-0000-0000-000000000000"]);
 
+  const contactIds = (drafts ?? []).map((d) => d.contact_id).filter((id): id is string => id !== null);
+  const { data: contacts } = await db
+    .from("contacts")
+    .select("id, full_name, email, email_status")
+    .in("id", contactIds.length > 0 ? contactIds : ["00000000-0000-0000-0000-000000000000"]);
+
   const campaignNameById = new Map(campaignIds.map((id, i) => [id, campaigns![i]!.name]));
   const companyById = new Map((companies ?? []).map((c) => [c.id, c]));
+  const contactById = new Map((contacts ?? []).map((c) => [c.id, c]));
 
   return (drafts ?? []).map((d) => ({
     ...d,
     campaignName: campaignNameById.get(d.campaign_id) ?? "",
     company: companyById.get(d.company_id) ?? null,
+    contact: d.contact_id ? (contactById.get(d.contact_id) ?? null) : null,
   }));
 }
 

@@ -6,13 +6,13 @@ import { qualificationWeightsSchema, DEFAULT_QUALIFICATION_WEIGHTS } from "./con
  * limits, qualification weights, sender information, email provider.
  * Backed by supabase/migrations/20260911090000_settings_and_audit.sql.
  *
- * Not every field is consumed by the pipeline yet: AI provider/model,
- * qualification weights, and the two research limits are read by
- * trigger/research-workflow.ts and trigger/campaign-workflow.ts (see those
- * files). emailProvider/senderName/senderEmail are stored but NOT
- * consumed anywhere -- sending isn't wired into orchestration yet (spec
- * Phase 10 is interface-only, see workflows/03-phase-plan.md). Don't infer
- * from this type's existence that changing those two fields does anything.
+ * aiProvider/aiModel, qualificationWeights, and the two research limits are
+ * read by trigger/research-workflow.ts and trigger/campaign-workflow.ts.
+ * emailProvider/senderName/senderEmail are read by
+ * app/actions/emails.ts's sendEmailAction: senderEmail (required) and
+ * senderName build the From address, and emailProvider is passed to
+ * lib/email's getEmailProvider() as an override (MOCK_EMAIL still wins as
+ * the global kill switch regardless of this setting).
  */
 export const userSettingsSchema = z.object({
   aiProvider: z.enum(["openai", "anthropic"]),

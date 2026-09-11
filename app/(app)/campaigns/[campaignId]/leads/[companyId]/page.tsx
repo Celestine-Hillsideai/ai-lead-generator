@@ -87,15 +87,19 @@ export default async function LeadDetailPage({
           </Card>
 
           {await Promise.all(
-            emailDrafts.map(async (draft) => (
-              <EmailDraftCard
-                key={draft.id}
-                draft={draft}
-                allFindings={allFindings}
-                revalidatePathTarget={revalidatePathTarget}
-                history={await getEmailDraftHistory(supabase, draft.id)}
-              />
-            ))
+            emailDrafts.map(async (draft) => {
+              const contact = contacts.find((c) => c.id === draft.contact_id) ?? null;
+              return (
+                <EmailDraftCard
+                  key={draft.id}
+                  draft={draft}
+                  allFindings={allFindings}
+                  revalidatePathTarget={revalidatePathTarget}
+                  history={await getEmailDraftHistory(supabase, draft.id)}
+                  recipient={contact ? { fullName: contact.full_name, email: contact.email, emailStatus: contact.email_status } : null}
+                />
+              );
+            })
           )}
         </div>
 

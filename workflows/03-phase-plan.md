@@ -70,8 +70,10 @@ Dropped `eslint-config-next` from devDependencies after it repeatedly triggered 
 ## Phase 10 — Optional Sending
 - [x] `EmailProvider` interface + Resend implementation (spec §20) — 2026-09-10, B5 (`lib/email/`)
 - [x] Sending disabled by default; explicit opt-in config — 2026-09-10, B5 (MOCK_EMAIL must be explicitly "false" to use Resend)
-- [ ] Rate limits, retry handling, send logging *(orchestration-level, later)*
-- [ ] Suppression/unsubscribe list enforced before every send *(orchestration-level, later)*
+- [x] Approved emails actually sent through the configured provider — 2026-09-11 (`sendEmailAction` in `app/actions/emails.ts`, distinct from approve per spec §19 "only approved emails can be exported or sent"; uses the recipient contact now stored on `email_drafts.contact_id`, previously always null -- fixed in `trigger/research-workflow.ts` since sending needs a real recipient; sender name/email and email-provider choice come from the already-editable Settings row)
+- [x] Suppression/invalid-contact enforcement before every send — 2026-09-11 (`lib/email/send-guard.ts`'s `checkSendEligibility`, unit-tested in `tests/unit/send-guard.test.ts`; queries the existing `suppressions` table, scoped by user or campaign)
+- [x] Send/Sent/Failed surfaced in the UI — 2026-09-11 (`components/leads/email-draft-card.tsx` Send button on `APPROVED` drafts; new "Ready to send" section on `/approvals` alongside the existing review queue, `lib/database/queries.ts`'s `getApprovalQueue` now takes a status param and resolves the recipient contact)
+- [ ] Rate limits, retry handling *(orchestration-level, later -- a send failure today correctly lands the draft in `FAILED` with an audit event, but there's no automatic retry or per-provider rate limiting yet)*
 
 ## Orchestration (spec §21) — not a numbered phase in the original spec, sits under Phase 4-7
 - [x] `trigger/research-workflow.ts`: per-company pipeline (research → decision-maker → qualification → personalization → email), status transition to Supabase after every stage, per-company try/catch → FAILED on error — 2026-09-10, B7
@@ -98,9 +100,9 @@ Migration applied live via `tools/supabase-migrate.ps1`'s underlying command; re
 
 ## Not yet done
 - [ ] Next.js/React-specific ESLint rules (dropped `eslint-config-next` due to install fragility)
-- [ ] Editable sender info / email provider selection actually affecting a real send (sending itself isn't wired into orchestration yet)
-- [ ] Playwright coverage of Review Lead → Approve → Export (needs a live `trigger.dev dev` worker alongside the test run — see `tests/e2e/README.md`)
+- [ ] Playwright coverage of Review Lead → Approve → Export → Send (needs a live `trigger.dev dev` worker alongside the test run — see `tests/e2e/README.md`; sending itself is now built, see Phase 10 above, just not yet in the E2E suite)
 - [ ] RLS permission-isolation automated test (`04-testing.md`)
+- [ ] Automatic retry/rate limiting on send failures (see Phase 10 note)
 
 ## Definition of done (spec §33)
 

@@ -136,7 +136,7 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
           pages: crawl.pages,
         })
     );
-    await repo.replaceContacts(
+    const insertedContacts = await repo.replaceContacts(
       company.id,
       decisionMakers.candidates.map((c) => ({
         firstName: c.firstName,
@@ -226,7 +226,9 @@ export async function processCompanyResearch(deps: ProcessCompanyDeps, payload: 
     await repo.insertEmailDraft({
       campaignId: campaign.id,
       companyId: company.id,
-      contactId: null, // resolved from the replaceContacts insert in a future pass once contact<->candidate matching is needed by the frontend
+      // insertedContacts preserves decisionMakers.candidates' order (see SupabaseCampaignRepository.replaceContacts),
+      // so index 0 is the same row as primaryCandidate above -- the recipient this draft was actually written for.
+      contactId: insertedContacts[0]?.id ?? null,
       subject: email.subject,
       body: email.body,
       personalizationHook: email.personalizationHook,

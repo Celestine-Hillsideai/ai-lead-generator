@@ -11,12 +11,12 @@ export interface SaveSettingsResult {
 
 /**
  * Upserts the signed-in user's settings row (types/settings.ts,
- * supabase/migrations/20260911090000_settings_and_audit.sql). Actually
- * consumed by the pipeline: aiProvider/aiModel, qualificationWeights, and
+ * supabase/migrations/20260911090000_settings_and_audit.sql). Consumed by
+ * the pipeline: aiProvider/aiModel, qualificationWeights, and
  * maxPagesPerCompany/maxCompaniesPerCampaign (see
- * trigger/research-workflow.ts and trigger/campaign-workflow.ts).
- * emailProvider/senderName/senderEmail are stored but not yet read by
- * anything -- sending isn't wired into orchestration (see types/settings.ts).
+ * trigger/research-workflow.ts and trigger/campaign-workflow.ts);
+ * emailProvider/senderName/senderEmail by app/actions/emails.ts's
+ * sendEmailAction (see types/settings.ts).
  */
 export async function saveSettingsAction(formData: FormData): Promise<SaveSettingsResult> {
   const supabase = await createSupabaseServerClient();
