@@ -22,3 +22,6 @@ npm-debug.log*
 # Original spec upload -- keep it locally, but docs/spec.md is the canonical
 # tracked copy; avoid committing large binary docx churn.
 *.docx
+
+.vercel
+.env*

@@ -6,7 +6,7 @@ Base list from `docs/spec.md` §31, split by which deploy target actually needs 
 |---|:---:|:---:|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ✅ | Public; safe in both. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | — | Public/browser-safe key; frontend reads through RLS with this. |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ (server-only) | ✅ | Vercel needs it for privileged API routes/server actions (spec §25); Trigger.dev tasks need it to write pipeline results directly to Supabase. **Never** expose to the browser. |
+| `SUPABASE_SERVICE_ROLE_KEY` | — | ✅ | **Not set on Vercel as built.** Every Server Action/Route Handler in `app/` uses `lib/supabase/server.ts` (anon key + the user's session cookie, RLS-scoped) — there are no privileged writes that bypass RLS from the frontend. Only Trigger.dev tasks use the service-role client (`lib/database/client.ts`). If a future Vercel-side operation genuinely needs to bypass RLS, add this var then, server-only, and re-justify it rather than adding it by default. |
 | `ANTHROPIC_API_KEY` | — | ✅ | Agents run in `trigger/` tasks, not in Vercel functions. Only set where the agents actually execute. |
 | `OPENAI_API_KEY` | — | ✅ | Same as above — only if OpenAI is the selected provider. |
 | `SEARCH_API_KEY` | — | ✅ | Used by the Decision-Maker Research Agent, which runs in a Trigger.dev task. |
@@ -21,3 +21,5 @@ Base list from `docs/spec.md` §31, split by which deploy target actually needs 
 - Never put `SUPABASE_SERVICE_ROLE_KEY`, any AI provider key, `SEARCH_API_KEY`, `RESEND_API_KEY`, or `TRIGGER_SECRET_KEY` behind a `NEXT_PUBLIC_` prefix or otherwise ship them to the browser.
 - Vercel and Trigger.dev have separate environment variable stores (Vercel Project Settings vs the Trigger.dev dashboard) — setting a var in one does not set it in the other. When adding a new secret, decide which side actually needs it (default to "only where the code that uses it runs") and set it there, per the table above.
 - Keep `MOCK_EMAIL=true` as the default even outside local dev until Phase 10 is deliberately enabling real sends — sending must stay opt-in (spec §20).
+- A `NEXT_PUBLIC_` var whose value looks like a credential gets refused by `vercel env add` unless you pass `--type config` (public, e.g. the Supabase anon key) or `--type secret` with a non-public name — see `01-deployment.md`.
+- New Vercel projects have "Vercel Authentication" (SSO) deployment protection on by default, which blocks everyone (including real end users) behind a Vercel login on top of the app's own auth. Disable with `vercel project protection disable <name> --sso` for a publicly-reachable app.

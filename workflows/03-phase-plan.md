@@ -86,8 +86,9 @@ Dropped `eslint-config-next` from devDependencies after it repeatedly triggered 
 - [x] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end — verified live against Supabase + Trigger.dev, 2026-09-10/11 (B8)
 - [x] Lint, typecheck, and build pass after each phase (spec §34) — maintained through B1-B7 and F1-F10; `npm run build` (Next.js production build) verified passing 2026-09-11
 
+**2026-09-11: F11, Vercel deployment.** Pushed to GitHub (`Celestine-Hillsideai/ai-lead-generator`, private), linked to Vercel (`hillsideai/ai-lead-generator`), env vars set (Supabase URL/anon key as public config, `TRIGGER_SECRET_KEY` prod key as a secret, mock-mode/cost-control vars for the settings page display). First `vercel --prod` CLI upload failed twice with a generic `fetch failed` (same flaky-large-transfer pattern seen during npm installs); the GitHub-integration-triggered deploy (empty commit + push) succeeded both times it was tried, so that's the documented path in `01-deployment.md` now. Discovered and fixed: new Vercel projects default to "Vercel Authentication" (SSO) deployment protection, which silently blocked all access including real users -- disabled via `vercel project protection disable ai-lead-generator --sso`. Corrected `05-env-vars.md`: `SUPABASE_SERVICE_ROLE_KEY` was documented as needed on Vercel but nothing in `app/` actually uses it (every Server Action/Route Handler goes through the RLS-scoped anon-key client) -- not set on Vercel. Live at https://ai-lead-generator-hillsideai.vercel.app, verified via curl (root redirects to `/login`, login page renders with the real design-system classes).
+
 ## Not yet done
-- [ ] Vercel deployment (F11) — repo not yet pushed to GitHub, no Vercel project connected
 - [ ] Playwright E2E covering the golden path (spec §30)
 - [ ] Editable settings (weights, sender info, provider selection) — currently read-only, env-driven
 - [ ] Bulk approval, approval/rejection audit history (Phase 8, see above)
