@@ -7,6 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "dev:trigger": "trigger.dev dev",
     "deploy:trigger": "trigger.dev deploy",
     "typecheck": "tsc --noEmit",
@@ -17,18 +20,27 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32",
+    "@supabase/ssr": "^0.12",
     "@supabase/supabase-js": "^2",
     "@trigger.dev/sdk": "4.5.16",
     "cheerio": "^1",
+    "clsx": "^2",
+    "next": "^15",
     "openai": "^4",
+    "react": "^19",
+    "react-dom": "^19",
     "resend": "^4",
     "zod": "^3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
     "@trigger.dev/build": "4.5.16",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "eslint": "^9",
     "supabase": "^2.117.0",
+    "tailwindcss": "^4",
     "tsx": "^4",
     "typescript": "^5",
     "typescript-eslint": "^8",

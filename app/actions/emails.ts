@@ -1,0 +1,133 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createSupabaseServerClient } from "../../lib/supabase/server";
+import { getAIProvider } from "../../lib/ai";
+import { runEmailAgent } from "../../agents/email-agent";
+import type { PersonalizationOutput } from "../../types/contracts";
+
+export async function approveEmailAction(emailDraftId: string, revalidatePathTarget: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("email_drafts")
+    .update({ status: "APPROVED" })
+    .eq("id", emailDraftId);
+  if (error) return { error: error.message };
+  revalidatePath(revalidatePathTarget);
+  return {};
+}
+
+export async function rejectEmailAction(emailDraftId: string, revalidatePathTarget: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("email_drafts")
+    .update({ status: "REJECTED" })
+    .eq("id", emailDraftId);
+  if (error) return { error: error.message };
+  revalidatePath(revalidatePathTarget);
+  return {};
+}
+
+export async function editEmailAction(
+  emailDraftId: string,
+  updates: { subject: string; body: string },
+  revalidatePathTarget: string
+): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("email_drafts")
+    .update({ subject: updates.subject, body: updates.body })
+    .eq("id", emailDraftId);
+  if (error) return { error: error.message };
+  revalidatePath(revalidatePathTarget);
+  return {};
+}
+
+/**
+ * Regenerates an email draft by re-running the Email Generation Agent
+ * against the same evidence-backed personalization material (re-derived
+ * from the draft's own evidenceIds, matching what agents/email-agent.ts
+ * expects) -- never fabricates new evidence, just asks the model for a
+ * fresh pass over the same verified material.
+ */
+export async function regenerateEmailAction(
+  emailDraftId: string,
+  revalidatePathTarget: string
+): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: draft, error: draftError } = await supabase
+    .from("email_drafts")
+    .select("*")
+    .eq("id", emailDraftId)
+    .single();
+  if (draftError || !draft) return { error: draftError?.message ?? "Draft not found." };
+
+  const { data: campaign } = await supabase.from("campaigns").select("*").eq("id", draft.campaign_id).single();
+  if (!campaign) return { error: "Campaign not found." };
+
+  const { data: findings } = await supabase
+    .from("research_findings")
+    .select("*")
+    .in("id", draft.evidence_ids.length > 0 ? draft.evidence_ids : ["00000000-0000-0000-0000-000000000000"]);
+  if (!findings || findings.length === 0) {
+    return { error: "No evidence findings available to regenerate from." };
+  }
+
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("*")
+    .eq("id", draft.contact_id ?? "00000000-0000-0000-0000-000000000000")
+    .maybeSingle();
+
+  // Reconstruct a minimal PersonalizationOutput from the evidence -- each
+  // finding becomes its own evidence-backed segment, since the original
+  // per-segment breakdown (openingHook/businessObservation/opportunity)
+  // isn't separately stored on the email draft, only the final composed
+  // evidenceIds. This still guarantees every claim traces to real evidence.
+  const personalization: PersonalizationOutput = {
+    openingHook: { text: findings[0]!.claim, evidenceIds: [findings[0]!.id] },
+    businessObservation: {
+      text: findings[Math.min(1, findings.length - 1)]!.claim,
+      evidenceIds: [findings[Math.min(1, findings.length - 1)]!.id],
+    },
+    opportunity: {
+      text: findings[Math.min(2, findings.length - 1)]!.claim,
+      evidenceIds: [findings[Math.min(2, findings.length - 1)]!.id],
+    },
+    valueConnection: { text: campaign.value_proposition ?? "", evidenceIds: [] },
+    overallConfidence: 0.7,
+  };
+
+  try {
+    const provider = getAIProvider();
+    const email = await runEmailAgent(provider, {
+      campaign: {
+        offerDescription: campaign.offer_description,
+        valueProposition: campaign.value_proposition,
+        cta: campaign.cta,
+        researchInstructions: campaign.research_instructions,
+      },
+      personalization,
+      recipientFirstName: contact?.first_name ?? null,
+    });
+
+    const { error: updateError } = await supabase
+      .from("email_drafts")
+      .update({
+        subject: email.subject,
+        body: email.body,
+        personalization_hook: email.personalizationHook,
+        evidence_ids: email.evidenceIds,
+        confidence: email.confidence,
+        status: "READY",
+      })
+      .eq("id", emailDraftId);
+    if (updateError) return { error: updateError.message };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to regenerate email." };
+  }
+
+  revalidatePath(revalidatePathTarget);
+  return {};
+}

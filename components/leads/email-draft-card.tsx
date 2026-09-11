@@ -1,0 +1,152 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { approveEmailAction, rejectEmailAction, editEmailAction, regenerateEmailAction } from "../../app/actions/emails";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Input, Textarea, Label } from "../ui/input";
+import { Card, CardBody, CardHeader, CardTitle } from "../ui/card";
+import { EvidenceDrawer, type EvidenceFinding } from "./evidence-drawer";
+
+export interface EmailDraftData {
+  id: string;
+  subject: string;
+  body: string;
+  personalization_hook: string | null;
+  evidence_ids: string[];
+  confidence: number | null;
+  status: string;
+}
+
+const STATUS_TONE: Record<string, "neutral" | "success" | "danger" | "accent"> = {
+  DRAFT: "neutral",
+  READY: "accent",
+  APPROVED: "success",
+  REJECTED: "danger",
+  SENDING: "accent",
+  SENT: "success",
+  FAILED: "danger",
+};
+
+export function EmailDraftCard({
+  draft,
+  allFindings,
+  revalidatePathTarget,
+}: {
+  draft: EmailDraftData;
+  allFindings: EvidenceFinding[];
+  revalidatePathTarget: string;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [subject, setSubject] = useState(draft.subject);
+  const [body, setBody] = useState(draft.body);
+  const [error, setError] = useState<string | null>(null);
+
+  const canAct = draft.status === "READY";
+
+  function run(action: () => Promise<{ error?: string }>) {
+    setError(null);
+    startTransition(async () => {
+      const result = await action();
+      if (result.error) setError(result.error);
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <CardTitle>Email draft</CardTitle>
+        <div className="flex items-center gap-2">
+          {draft.confidence !== null && (
+            <span className="text-xs text-ink-faint">{Math.round(draft.confidence * 100)}% confidence</span>
+          )}
+          <Badge tone={STATUS_TONE[draft.status] ?? "neutral"}>{draft.status}</Badge>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        {editing ? (
+          <>
+            <div>
+              <Label htmlFor={`subject-${draft.id}`}>Subject</Label>
+              <Input id={`subject-${draft.id}`} value={subject} onChange={(e) => setSubject(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor={`body-${draft.id}`}>Body</Label>
+              <Textarea id={`body-${draft.id}`} value={body} onChange={(e) => setBody(e.target.value)} className="min-h-40" />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">Subject</p>
+              <p className="mt-1 text-sm text-ink">{draft.subject}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">Body</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{draft.body}</p>
+            </div>
+          </>
+        )}
+
+        {draft.personalization_hook && (
+          <Badge tone="evidence">Personalization: {draft.personalization_hook}</Badge>
+        )}
+
+        {error && <p className="text-sm text-danger">{error}</p>}
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <EvidenceDrawer evidenceIds={draft.evidence_ids} allFindings={allFindings} />
+
+          {editing ? (
+            <>
+              <Button
+                size="sm"
+                disabled={isPending}
+                onClick={() =>
+                  run(async () => {
+                    const r = await editEmailAction(draft.id, { subject, body }, revalidatePathTarget);
+                    if (!r.error) setEditing(false);
+                    return r;
+                  })
+                }
+              >
+                Save
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            canAct && (
+              <>
+                <Button size="sm" disabled={isPending} onClick={() => run(() => approveEmailAction(draft.id, revalidatePathTarget))}>
+                  Approve
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => run(() => rejectEmailAction(draft.id, revalidatePathTarget))}
+                >
+                  Reject
+                </Button>
+                <Button variant="secondary" size="sm" disabled={isPending} onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => run(() => regenerateEmailAction(draft.id, revalidatePathTarget))}
+                >
+                  {isPending ? "Regenerating…" : "Regenerate"}
+                </Button>
+              </>
+            )
+          )}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}

@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/*
+ * Design system for the AI Lead Generator, per docs/spec.md §1: a deliberate
+ * visual identity, not a generic SaaS dashboard template. Direction: a
+ * "research dossier" aesthetic -- warm paper background, a serif display
+ * face for headings (editorial, analytical credibility) paired with a clean
+ * sans for UI/body text, a confident deep-teal accent for actions, and a
+ * dedicated amber "evidence" color used ONLY for citation/evidence chips so
+ * that color alone signals "this claim is sourced" throughout the app.
+ */
+@theme {
+  --font-display: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Warm neutrals -- paper, not stark white/gray */
+  --color-paper: #faf7f1;
+  --color-paper-raised: #ffffff;
+  --color-paper-sunken: #f1ece2;
+  --color-ink: #211d16;
+  --color-ink-muted: #6b6455;
+  --color-ink-faint: #a39c8b;
+  --color-border: #e4dcc9;
+  --color-border-strong: #cfc4a8;
+
+  /* Primary accent -- deep teal, distinct from default SaaS blue/purple */
+  --color-accent-50: #edf6f4;
+  --color-accent-100: #d3e9e5;
+  --color-accent-400: #2e8a7c;
+  --color-accent-500: #146b5e;
+  --color-accent-600: #0f544a;
+  --color-accent-700: #0b3f38;
+
+  /* Evidence -- amber, used exclusively for citation/evidence affordances */
+  --color-evidence-50: #fdf6e6;
+  --color-evidence-100: #f8e7bc;
+  --color-evidence-400: #c9932b;
+  --color-evidence-500: #a97614;
+  --color-evidence-600: #855c10;
+
+  /* Qualification tiers */
+  --color-tier-high: #146b5e;
+  --color-tier-high-bg: #d3e9e5;
+  --color-tier-medium: #a97614;
+  --color-tier-medium-bg: #f8e7bc;
+  --color-tier-low: #6b6455;
+  --color-tier-low-bg: #ece7d9;
+  --color-tier-unqualified: #9b3b34;
+  --color-tier-unqualified-bg: #f3ded9;
+
+  /* Semantic status */
+  --color-success: #146b5e;
+  --color-success-bg: #d3e9e5;
+  --color-warning: #a97614;
+  --color-warning-bg: #f8e7bc;
+  --color-danger: #9b3b34;
+  --color-danger-bg: #f3ded9;
+
+  --radius-card: 0.625rem;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+}

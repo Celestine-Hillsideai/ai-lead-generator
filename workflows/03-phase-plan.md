@@ -8,31 +8,39 @@ Live checklist derived from `docs/spec.md` §32. Update this file as work lands 
 
 Learned along the way: the local dev worker process needs real, unsandboxed network access to crawl real websites -- and seed data must use real reachable domains, not invented `*.example.com` subdomains (arbitrary subdomains of the reserved example.com don't resolve).
 
+**2026-09-11: frontend track (F1-F10).** Next.js 15 (App Router) + React 19 + Tailwind v4 + `@supabase/ssr` added to the same project. No literal "Claude Frontend Design Skill" tool exists in this environment -- see the note in `CLAUDE.md`'s Repository layout section for how spec §1 was interpreted instead. Built: auth (login/signup via Supabase Auth, session-refresh middleware), dashboard with live metrics, campaign create/list/detail, CSV lead import wired to the existing `lib/validation/csv.ts`, start/pause/resume processing (calls `tasks.trigger()`), leads table + lead detail (research findings, decision makers, qualification breakdown), evidence drawer (spec §18), email draft approve/reject/edit/regenerate, a cross-campaign approvals queue, approved-only CSV export (Route Handler, not a Server Action, since it's a file download), and a read-only settings page (no settings table exists yet, so nothing there is persisted/editable -- documented as a real gap, not silently implied done).
+
+Verified: `npm run build` succeeds (11 routes), `npm run typecheck`/`lint` clean, all 92 backend tests still pass, and the dev server was actually started and driven (no headless-browser tool was available in this environment, so verification was via direct HTTP: confirmed `/` redirects to `/login`, the login page's rendered HTML carries the custom design classes, and the compiled CSS contains the actual `@theme` tokens (e.g. `--color-accent-500: #146b5e`) and the `.bg-accent-500` utility rule, not just dead class names). Not yet verified: an actual signed-in walkthrough of the golden path in a live browser, since that needs a real Supabase Auth user with a known password and a headless browser tool neither of which were set up this session.
+
+Fixed a real bug along the way: `@supabase/ssr@0.5.2` (initially pinned) is incompatible with the installed `@supabase/supabase-js@2.116` -- its `SupabaseClient` generic arity changed between versions, which silently collapsed every query's return type to `never` throughout the app. Bumped to `@supabase/ssr@^0.12`.
+
+Dropped `eslint-config-next` from devDependencies after it repeatedly triggered `ECONNRESET` during install (very deep dependency tree) -- lint coverage for this repo currently has no Next.js/React-specific rules (missing-key, hooks-rules, etc.), which is a real gap, not a decision to revisit lightly given how much install pain it caused.
+
 ## Phase 1 — Foundation
-- [ ] Next.js + TypeScript project scaffolded *(deferred — frontend session)*
-- [ ] Claude Frontend Design Skill applied to base UI shell (not a generic dashboard template — spec §1) *(deferred — frontend session)*
-- [ ] Supabase project connected, Auth wired up *(migrations written, awaiting `supabase link` + `db push` with live credentials)*
+- [x] Next.js + TypeScript project scaffolded — 2026-09-11, F1 (Next.js 15 App Router, React 19, Tailwind v4, added to the existing project rather than a separate one)
+- [x] Deliberate visual identity applied to base UI shell (not a generic dashboard template — spec §1) — 2026-09-11, F1 (hand-authored design system: warm-paper palette, serif/sans pairing, dedicated evidence color; no literal "Frontend Design Skill" tool exists here, see `CLAUDE.md`)
+- [x] Supabase project connected, Auth wired up — 2026-09-11, F2 (`lib/supabase/{server,client,middleware}.ts`, login/signup pages, session-refresh + route-protection middleware)
 - [x] Base schema + RLS policies (spec §8, §9) — 2026-09-10, B2 (migrations in `supabase/migrations/`, not yet applied to a live project)
 - [x] `.env.example` created, matches `workflows/05-env-vars.md` — 2026-09-10, B1
 - [x] Backend toolchain scaffolded: `package.json`, `tsconfig.json`, `trigger.config.ts`, eslint/vitest config, git repo initialized — 2026-09-10, B1
 - [x] Trigger.dev `dev` and `deploy` verified working end-to-end (`hello-world` task deployed to `prod`) — 2026-09-10, B1
 
 ## Phase 2 — Campaigns
-- [ ] Campaign creation form (name, industry, geography, company size, target roles, offer, value prop, CTA, optional instructions — spec §10)
-- [ ] Campaign listing + detail views
-- [ ] ICP configuration persisted per campaign
+- [x] Campaign creation form (name, industry, geography, company size, target roles, offer, value prop, CTA, optional instructions — spec §10) — 2026-09-11, F4 (`components/campaigns/campaign-form.tsx`, `app/actions/campaigns.ts`)
+- [x] Campaign listing + detail views — 2026-09-11, F4 (`app/(app)/campaigns/page.tsx`, `.../[campaignId]/page.tsx`)
+- [x] ICP configuration persisted per campaign — 2026-09-11, F4 (written directly to `campaigns` table via the create action, RLS-scoped)
 
 ## Phase 3 — Lead Import
 - [x] CSV upload with validation preview (spec §11) — 2026-09-10, B5 (`lib/validation/csv.ts`; upload UI is a frontend-session item, validation logic itself is done)
 - [x] URL normalization to canonical domain — 2026-09-10, B5
 - [x] Duplicate detection, import stats (accepted/rejected/duplicate/invalid) — 2026-09-10, B5
-- [ ] Leads table *(frontend session)*
+- [x] Leads table — 2026-09-11, F5 (`components/leads/{csv-import,leads-table}.tsx`, `app/actions/leads.ts`, `app/(app)/campaigns/[campaignId]/leads/page.tsx`)
 
 ## Phase 4 — Research
 - [x] Secure URL fetcher with SSRF protection (spec §12, §23) — 2026-09-10, B4 (`lib/security/ssrf.ts`, `lib/scraper/fetcher.ts`; known residual DNS-rebinding gap noted in code comments)
 - [x] Sitemap discovery + bounded crawler (default 15 pages/company) — 2026-09-10, B4 (`lib/scraper/{sitemap,crawler,robots,extract}.ts`, 13 passing tests against a local test server)
 - [x] Website Research Agent producing the output contract in spec §13 — 2026-09-10, B6 (`agents/research-agent.ts`, `prompts/research.prompt.ts`)
-- [ ] Evidence store (`ResearchSource`, `ResearchFinding`) *(schema exists from B2; population happens in B7 orchestration)*
+- [x] Evidence store (`ResearchSource`, `ResearchFinding`) — 2026-09-10, B7 (populated by `trigger/research-workflow.ts`); surfaced in the UI 2026-09-11, F7
 
 ## Phase 5 — Decision Makers
 - [x] Provider abstraction for search/contact-data providers (spec §14) — 2026-09-10, B5 (`lib/search/`, mock only, no real provider selected)
@@ -42,22 +50,22 @@ Learned along the way: the local dev worker process needs real, unsandboxed netw
 
 ## Phase 6 — Qualification
 - [x] Scoring engine with default weights (spec §15) — 2026-09-10, B6 (`agents/qualification-agent.ts`; overall score/tier recomputed deterministically from the model's sub-scores rather than trusting model arithmetic)
-- [x] Configurable weights in Settings — weights are a parameter to `runQualificationAgent`, 2026-09-10, B6 (Settings *UI* is a frontend-session item)
-- [ ] Score/tier visualization in the leads table and lead detail view *(frontend session)*
+- [x] Configurable weights in Settings — weights are a parameter to `runQualificationAgent`, 2026-09-10, B6; Settings page shows current (env-driven) defaults read-only, 2026-09-11, F9 — **editing them is not implemented** (no settings table exists to persist a per-campaign override yet)
+- [x] Score/tier visualization in the leads table and lead detail view — 2026-09-11, F7 (`components/leads/{leads-table,qualification-breakdown}.tsx`)
 
 ## Phase 7 — Personalization & Email
 - [x] Personalization Agent (evidence-backed hook/observation/opportunity/value connection — spec §16) — 2026-09-10, B6 (`agents/personalization-agent.ts`; hallucinated evidenceIds are rejected via a per-call schema refinement, not just prompt instruction)
 - [x] Email Generation Agent (subject/body/CTA/confidence — spec §17) — 2026-09-10, B6 (`agents/email-agent.ts`; evidenceIds checked against the personalization material's own evidence)
-- [x] Evidence linking (`EmailDraft.evidenceIds`) — 2026-09-10, B6 (structural, not just DB column); Evidence drawer/modal *(frontend session)*
+- [x] Evidence linking (`EmailDraft.evidenceIds`) — 2026-09-10, B6 (structural, not just DB column); Evidence drawer/modal — 2026-09-11, F7 (`components/leads/evidence-drawer.tsx`)
 - [x] Confidence threshold routes low-confidence drafts to `NEEDS_REVIEW` — 2026-09-10, B6 (`agents/email-agent.ts`'s `needsReview()`; actually setting `Company.researchStatus`/`EmailDraft.status` happens in B7 orchestration)
 
 ## Phase 8 — Approval
-- [ ] Approval queue: approve/reject/edit/regenerate (spec §19)
-- [ ] Bulk approval, restricted to high-confidence records
-- [ ] Approval/rejection timestamps and state history
+- [x] Approval queue: approve/reject/edit/regenerate (spec §19) — 2026-09-11, F8 (`app/(app)/approvals/page.tsx`, `components/leads/email-draft-card.tsx`, `app/actions/emails.ts`; regenerate re-runs the real Email Generation Agent against the draft's own stored evidence, not a fake/canned edit)
+- [ ] Bulk approval, restricted to high-confidence records *(not implemented — per-draft actions only)*
+- [ ] Approval/rejection timestamps and state history *(status transitions happen; no separate audit-log table/UI yet)*
 
 ## Phase 9 — Export
-- [ ] Approved-only CSV export
+- [x] Approved-only CSV export — 2026-09-11, F10 (`app/api/campaigns/[campaignId]/export/route.ts`, a Route Handler so it's a real file download, not a Server Action)
 
 ## Phase 10 — Optional Sending
 - [x] `EmailProvider` interface + Resend implementation (spec §20) — 2026-09-10, B5 (`lib/email/`)
@@ -74,9 +82,16 @@ Learned along the way: the local dev worker process needs real, unsandboxed netw
 
 ## Cross-cutting (ongoing through every phase)
 - [x] Zod validation on all agent I/O and API payloads — 2026-09-10, B3 (`types/contracts/*`, 20 passing round-trip tests in `tests/unit/contracts.test.ts`)
-- [x] Unit/integration/E2E tests per `04-testing.md` — 92 passing tests as of B7 (unit + integration; no E2E yet, that needs the frontend)
-- [x] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end — verified in-process via `tests/unit/research-workflow.test.ts`; live Trigger.dev dev-mode run still pending Supabase linking
-- [x] Lint, typecheck, and build pass after each phase (spec §34) — maintained through B1-B7; Trigger.dev dry-run build also verified after B7
+- [x] Unit/integration tests per `04-testing.md` — 92 passing tests, unchanged through the frontend track (no frontend component/E2E tests yet — Playwright is specced in `04-testing.md` but not set up; that's a real gap)
+- [x] Mock mode (`MOCK_AI`/`MOCK_SEARCH`/`MOCK_EMAIL`) keeps working end-to-end — verified live against Supabase + Trigger.dev, 2026-09-10/11 (B8)
+- [x] Lint, typecheck, and build pass after each phase (spec §34) — maintained through B1-B7 and F1-F10; `npm run build` (Next.js production build) verified passing 2026-09-11
+
+## Not yet done
+- [ ] Vercel deployment (F11) — repo not yet pushed to GitHub, no Vercel project connected
+- [ ] Playwright E2E covering the golden path (spec §30)
+- [ ] Editable settings (weights, sender info, provider selection) — currently read-only, env-driven
+- [ ] Bulk approval, approval/rejection audit history (Phase 8, see above)
+- [ ] Next.js/React-specific ESLint rules (dropped `eslint-config-next` due to install fragility)
 
 ## Definition of done (spec §33)
 

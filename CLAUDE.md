@@ -67,7 +67,9 @@ AI LEAD GENERATOR/
   tests/
 ```
 
-`app/`, `components/`, `agents/`, `lib/`, `trigger/`, `prompts/`, `types/`, `supabase/`, `tests/` do not exist yet — they're created starting Phase 1 of [`workflows/03-phase-plan.md`](workflows/03-phase-plan.md), per `docs/spec.md` §24.
+All of the above exist as of 2026-09-11 (backend built B1-B8, frontend foundation + golden-path pages built F1-F10 — see `workflows/03-phase-plan.md` for exact status per phase).
+
+> **Note on spec §1's "Claude Frontend Design Skill":** no tool or skill by that literal name is available in this environment. The frontend was hand-authored in code directly (Next.js + Tailwind v4) applying the same design principles the spec describes — a deliberate visual identity (warm-paper "research dossier" palette, serif/sans type pairing, a dedicated evidence/citation color used only for provenance affordances), not a generic shadcn-default dashboard. If a literal Frontend Design Skill becomes available later, re-evaluate against it; don't assume this satisfies a tool-specific requirement that doesn't exist here.
 
 ## Tools
 

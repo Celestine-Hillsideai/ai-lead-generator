@@ -3,6 +3,9 @@ dist/
 .trigger/
 *.tsbuildinfo
 
+.next/
+next-env.d.ts
+
 .claude/
 
 supabase/.temp/
