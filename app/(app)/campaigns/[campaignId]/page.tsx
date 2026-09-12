@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
-import { getCampaignWithStats } from "../../../../lib/database/queries";
+import { getCampaignWithStats, getUserSettings, getLatestSourcingRun } from "../../../../lib/database/queries";
 import { PageHeader } from "../../../../components/layout/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Badge } from "../../../../components/ui/badge";
@@ -9,6 +9,7 @@ import { Button } from "../../../../components/ui/button";
 import { ProcessControls } from "../../../../components/campaigns/process-controls";
 import { PipelineProgress } from "../../../../components/campaigns/pipeline-progress";
 import { CsvImport } from "../../../../components/leads/csv-import";
+import { SourceCompanies } from "../../../../components/leads/source-companies";
 import type { CampaignStatus, CompanyResearchStatus } from "../../../../types/status";
 
 export default async function CampaignDetailPage({ params }: { params: Promise<{ campaignId: string }> }) {
@@ -21,6 +22,13 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   } catch {
     notFound();
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const settings = user ? await getUserSettings(supabase, user.id) : null;
+  const remainingCapacity = Math.max(0, (settings?.maxCompaniesPerCampaign ?? 200) - companies.length);
+  const latestRun = await getLatestSourcingRun(supabase, campaignId);
 
   return (
     <div>
@@ -55,7 +63,21 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             </CardBody>
           </Card>
 
-          {companies.length === 0 && <CsvImport campaignId={campaign.id} />}
+          {companies.length === 0 && (
+            <div className="grid gap-6 sm:grid-cols-2">
+              <CsvImport campaignId={campaign.id} />
+              <SourceCompanies
+                campaignId={campaign.id}
+                campaign={campaign}
+                remainingCapacity={remainingCapacity}
+                initialRun={
+                  latestRun
+                    ? { id: latestRun.id, status: latestRun.status as "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" }
+                    : null
+                }
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
