@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MockAIProvider } from "../../lib/ai/mock";
 import { MockSearchProvider } from "../../lib/search/mock";
 import { MockEmailProvider } from "../../lib/email/mock";
+import { MockCompanySourcingProvider } from "../../lib/sourcing/mock";
 import {
   researchOutputSchema,
   decisionMakerOutputSchema,
@@ -46,6 +47,40 @@ describe("MockSearchProvider", () => {
     expect(results).toHaveLength(1);
     expect(results[0]!.title).toBe("CTO");
     expect(results[0]!.emailStatus).toBe("unknown");
+  });
+});
+
+describe("MockCompanySourcingProvider", () => {
+  it("returns candidates capped at its real-domain pool size, each traceable to a sourceRef", async () => {
+    const provider = new MockCompanySourcingProvider();
+    const results = await provider.findCompanies({
+      industry: "Fintech",
+      geography: "Nigeria",
+      companySize: "50-200",
+      targetRoles: ["CEO"],
+      offerDescription: "Payments infrastructure",
+      targetCount: 10,
+    });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.length).toBeLessThanOrEqual(10);
+    for (const candidate of results) {
+      expect(candidate.sourceRef).toMatch(/^mock:\/\//);
+      expect(candidate.companyName).toBeTruthy();
+      expect(candidate.website).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("respects a smaller targetCount than its pool", async () => {
+    const provider = new MockCompanySourcingProvider();
+    const results = await provider.findCompanies({
+      industry: null,
+      geography: null,
+      companySize: null,
+      targetRoles: [],
+      offerDescription: null,
+      targetCount: 1,
+    });
+    expect(results).toHaveLength(1);
   });
 });
 

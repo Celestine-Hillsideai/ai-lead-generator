@@ -10,6 +10,10 @@ import type {
   NewQualification,
   NewEmailDraft,
   NewAgentRun,
+  CompanySourcingRepository,
+  SourcingRunRow,
+  NewSourcedCompany,
+  SourcingRunStatusPatch,
 } from "./repository";
 import type { CompanyResearchStatus, FactType } from "../../types/status";
 import type { UserSettings } from "../../types/settings";
@@ -18,7 +22,7 @@ import { DEFAULT_QUALIFICATION_WEIGHTS } from "../../types/contracts";
 const TERMINAL_STATUSES: CompanyResearchStatus[] = ["EMAIL_READY", "NEEDS_REVIEW", "APPROVED", "FAILED"];
 
 /** Real Supabase-backed implementation of CampaignPipelineRepository, used by trigger/ tasks at runtime. */
-export class SupabaseCampaignRepository implements CampaignPipelineRepository {
+export class SupabaseCampaignRepository implements CampaignPipelineRepository, CompanySourcingRepository {
   constructor(private readonly db: SupabaseClient<Database>) {}
 
   async getCampaign(campaignId: string): Promise<CampaignRow> {
@@ -44,6 +48,7 @@ export class SupabaseCampaignRepository implements CampaignPipelineRepository {
       emailProvider: data.email_provider as "mock" | "resend",
       maxPagesPerCompany: data.max_pages_per_company,
       maxCompaniesPerCampaign: data.max_companies_per_campaign,
+      maxCompaniesPerSourcingRun: data.max_companies_per_sourcing_run,
       qualificationWeights: {
         ...DEFAULT_QUALIFICATION_WEIGHTS,
         ...(data.qualification_weights as Record<string, number>),
@@ -218,5 +223,68 @@ export class SupabaseCampaignRepository implements CampaignPipelineRepository {
       completed_at: run.completedAt,
     });
     if (error) throw new Error(`Failed to insert agent run: ${error.message}`);
+  }
+
+  async getSourcingRun(id: string): Promise<SourcingRunRow> {
+    const { data, error } = await this.db.from("sourcing_runs").select("*").eq("id", id).single();
+    if (error || !data) throw new Error(`Sourcing run ${id} not found: ${error?.message}`);
+    return data;
+  }
+
+  async updateSourcingRunStatus(id: string, patch: SourcingRunStatusPatch): Promise<void> {
+    const { error } = await this.db
+      .from("sourcing_runs")
+      .update({
+        status: patch.status,
+        ...(patch.provider !== undefined && { provider: patch.provider }),
+        ...(patch.discoveredCount !== undefined && { discovered_count: patch.discoveredCount }),
+        ...(patch.insertedCount !== undefined && { inserted_count: patch.insertedCount }),
+        ...(patch.skippedCount !== undefined && { skipped_count: patch.skippedCount }),
+        ...(patch.error !== undefined && { error: patch.error }),
+        ...(patch.completedAt !== undefined && { completed_at: patch.completedAt }),
+      })
+      .eq("id", id);
+    if (error) throw new Error(`Failed to update sourcing run ${id}: ${error.message}`);
+  }
+
+  async getCompanyDomainsForCampaign(campaignId: string): Promise<string[]> {
+    const { data, error } = await this.db
+      .from("companies")
+      .select("normalized_domain")
+      .eq("campaign_id", campaignId);
+    if (error) throw new Error(`Failed to load company domains for campaign ${campaignId}: ${error.message}`);
+    return (data ?? []).map((c) => c.normalized_domain);
+  }
+
+  async countCompaniesForCampaign(campaignId: string): Promise<number> {
+    const { count, error } = await this.db
+      .from("companies")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campaignId);
+    if (error) throw new Error(`Failed to count companies for campaign ${campaignId}: ${error.message}`);
+    return count ?? 0;
+  }
+
+  async insertSourcedCompanies(companies: NewSourcedCompany[]): Promise<{ id: string }[]> {
+    if (companies.length === 0) return [];
+    const { data, error } = await this.db
+      .from("companies")
+      .insert(
+        companies.map((c) => ({
+          campaign_id: c.campaignId,
+          name: c.name,
+          website: c.website,
+          normalized_domain: c.normalizedDomain,
+          industry: c.industry,
+          location: c.location,
+          research_status: "IMPORTED" as const,
+          source_type: "auto_sourced" as const,
+          source_provider: c.sourceProvider,
+          sourcing_run_id: c.sourcingRunId,
+        }))
+      )
+      .select("id");
+    if (error) throw new Error(`Failed to insert sourced companies: ${error.message}`);
+    return data ?? [];
   }
 }

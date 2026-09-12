@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { validateCsvContent } from "../../lib/validation/csv";
+import { dedupeByDomain } from "../../lib/leads/dedupe";
 
 export interface ImportLeadsResult {
   error?: string;
@@ -35,8 +36,10 @@ export async function importLeadsAction(campaignId: string, formData: FormData):
   const existingDomains = new Set((existing ?? []).map((c) => c.normalized_domain));
 
   const accepted = summary.results.filter((r) => r.status === "accepted" && r.data);
-  const toInsert = accepted.filter((r) => !existingDomains.has(r.data!.normalizedDomain));
-  const alreadyImported = accepted.length - toInsert.length;
+  const { toInsert, duplicateCount: alreadyImported } = dedupeByDomain(
+    accepted.map((r) => ({ ...r, normalizedDomain: r.data!.normalizedDomain })),
+    existingDomains
+  );
 
   let insertedIntoDb = 0;
   if (toInsert.length > 0) {

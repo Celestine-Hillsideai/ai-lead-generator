@@ -147,6 +147,9 @@ export type Database = {
           qualification_score: number | null
           qualification_tier: string | null
           research_status: string
+          source_provider: string | null
+          source_type: string
+          sourcing_run_id: string | null
           updated_at: string
           website: string
         }
@@ -163,6 +166,9 @@ export type Database = {
           qualification_score?: number | null
           qualification_tier?: string | null
           research_status?: string
+          source_provider?: string | null
+          source_type?: string
+          sourcing_run_id?: string | null
           updated_at?: string
           website: string
         }
@@ -179,6 +185,9 @@ export type Database = {
           qualification_score?: number | null
           qualification_tier?: string | null
           research_status?: string
+          source_provider?: string | null
+          source_type?: string
+          sourcing_run_id?: string | null
           updated_at?: string
           website?: string
         }
@@ -188,6 +197,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_sourcing_run_id_fkey"
+            columns: ["sourcing_run_id"]
+            isOneToOne: false
+            referencedRelation: "sourcing_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -499,6 +515,66 @@ export type Database = {
           },
         ]
       }
+      sourcing_runs: {
+        Row: {
+          campaign_id: string
+          completed_at: string | null
+          created_at: string
+          discovered_count: number
+          error: string | null
+          id: string
+          inserted_count: number
+          provider: string
+          requested_by: string
+          skipped_count: number
+          status: string
+          target_count: number
+        }
+        Insert: {
+          campaign_id: string
+          completed_at?: string | null
+          created_at?: string
+          discovered_count?: number
+          error?: string | null
+          id?: string
+          inserted_count?: number
+          provider: string
+          requested_by: string
+          skipped_count?: number
+          status?: string
+          target_count: number
+        }
+        Update: {
+          campaign_id?: string
+          completed_at?: string | null
+          created_at?: string
+          discovered_count?: number
+          error?: string | null
+          id?: string
+          inserted_count?: number
+          provider?: string
+          requested_by?: string
+          skipped_count?: number
+          status?: string
+          target_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sourcing_runs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sourcing_runs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressions: {
         Row: {
           campaign_id: string | null
@@ -548,6 +624,7 @@ export type Database = {
           created_at: string
           email_provider: string
           max_companies_per_campaign: number
+          max_companies_per_sourcing_run: number
           max_pages_per_company: number
           qualification_weights: Json
           sender_email: string | null
@@ -561,6 +638,7 @@ export type Database = {
           created_at?: string
           email_provider?: string
           max_companies_per_campaign?: number
+          max_companies_per_sourcing_run?: number
           max_pages_per_company?: number
           qualification_weights?: Json
           sender_email?: string | null
@@ -574,6 +652,7 @@ export type Database = {
           created_at?: string
           email_provider?: string
           max_companies_per_campaign?: number
+          max_companies_per_sourcing_run?: number
           max_pages_per_company?: number
           qualification_weights?: Json
           sender_email?: string | null

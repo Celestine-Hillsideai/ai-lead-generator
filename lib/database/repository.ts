@@ -5,6 +5,7 @@ import type {
   FactType,
   ContactEmailStatus,
   EmailDraftStatus,
+  SourcingRunStatus,
 } from "../../types/status";
 import type { UserSettings } from "../../types/settings";
 
@@ -18,6 +19,7 @@ import type { UserSettings } from "../../types/settings";
 
 export type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
 export type CompanyRow = Database["public"]["Tables"]["companies"]["Row"];
+export type SourcingRunRow = Database["public"]["Tables"]["sourcing_runs"]["Row"];
 
 export interface NewResearchSource {
   url: string;
@@ -81,6 +83,42 @@ export interface NewAgentRun {
   error: string | null;
   startedAt: string;
   completedAt: string;
+}
+
+export interface NewSourcedCompany {
+  campaignId: string;
+  name: string;
+  website: string;
+  normalizedDomain: string;
+  industry: string | null;
+  location: string | null;
+  sourceProvider: string;
+  sourcingRunId: string;
+}
+
+export interface SourcingRunStatusPatch {
+  status: SourcingRunStatus;
+  provider?: string;
+  discoveredCount?: number;
+  insertedCount?: number;
+  skippedCount?: number;
+  error?: string | null;
+  completedAt?: string;
+}
+
+/**
+ * DB operations trigger/sourcing-workflow.ts needs -- kept as a sibling to
+ * CampaignPipelineRepository (not merged into it) so research/campaign
+ * workflow tests aren't forced to implement unrelated methods. Both
+ * interfaces are implemented by the one SupabaseCampaignRepository class at
+ * runtime (see lib/database/supabase-repository.ts).
+ */
+export interface CompanySourcingRepository {
+  getSourcingRun(id: string): Promise<SourcingRunRow>;
+  updateSourcingRunStatus(id: string, patch: SourcingRunStatusPatch): Promise<void>;
+  getCompanyDomainsForCampaign(campaignId: string): Promise<string[]>;
+  countCompaniesForCampaign(campaignId: string): Promise<number>;
+  insertSourcedCompanies(companies: NewSourcedCompany[]): Promise<{ id: string }[]>;
 }
 
 export interface CampaignPipelineRepository {

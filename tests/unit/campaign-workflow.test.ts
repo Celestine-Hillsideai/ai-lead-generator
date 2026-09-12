@@ -139,6 +139,7 @@ describe("processCampaign", () => {
       emailProvider: "mock",
       maxPagesPerCompany: 15,
       maxCompaniesPerCampaign: 2,
+      maxCompaniesPerSourcingRun: 50,
       qualificationWeights: {
         industryFit: 0.25,
         companySize: 0.15,

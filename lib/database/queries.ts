@@ -152,6 +152,7 @@ export async function getUserSettings(db: SupabaseClient<Database>, userId: stri
     emailProvider: data.email_provider as "mock" | "resend",
     maxPagesPerCompany: data.max_pages_per_company,
     maxCompaniesPerCampaign: data.max_companies_per_campaign,
+    maxCompaniesPerSourcingRun: data.max_companies_per_sourcing_run,
     qualificationWeights: {
       ...DEFAULT_QUALIFICATION_WEIGHTS,
       ...(data.qualification_weights as Record<string, number>),
@@ -159,6 +160,18 @@ export async function getUserSettings(db: SupabaseClient<Database>, userId: stri
     senderName: data.sender_name,
     senderEmail: data.sender_email,
   };
+}
+
+export async function getLatestSourcingRun(db: SupabaseClient<Database>, campaignId: string) {
+  const { data, error } = await db
+    .from("sourcing_runs")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to load sourcing run: ${error.message}`);
+  return data ?? null;
 }
 
 export async function getEmailDraftHistory(db: SupabaseClient<Database>, emailDraftId: string) {

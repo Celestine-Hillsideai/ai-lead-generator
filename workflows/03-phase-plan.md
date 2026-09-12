@@ -36,6 +36,20 @@ Dropped `eslint-config-next` from devDependencies after it repeatedly triggered 
 - [x] Duplicate detection, import stats (accepted/rejected/duplicate/invalid) — 2026-09-10, B5
 - [x] Leads table — 2026-09-11, F5 (`components/leads/{csv-import,leads-table}.tsx`, `app/actions/leads.ts`, `app/(app)/campaigns/[campaignId]/leads/page.tsx`)
 
+## Phase 3A — Automated Sourcing
+Promotes spec §37's "search-based lead discovery instead of only CSV input" from roadmap item to built, per a new reference document (`ai-lead-generator-master-prompt-v2.md`, root of repo) whose "Stage 1 — Source" prompted this — see spec §11A.
+- [x] `CompanySourcingProvider` abstraction + mock implementation (no real provider account yet) — 2026-09-12 (`lib/sourcing/`, `MOCK_SOURCING`/`SOURCING_API_KEY`)
+- [x] Migration: `sourcing_runs` table, `companies.source_type`/`source_provider`/`sourcing_run_id`, `user_settings.max_companies_per_sourcing_run` — 2026-09-12 (`supabase/migrations/20260912090000_company_sourcing.sql`), applied to the live project via `supabase db push` (a personal access token unblocked the interactive-login constraint, see note below); `lib/database/types.generated.ts` regenerated for real and confirmed identical (bar table ordering) to the hand-edited interim version
+- [x] `trigger/sourcing-workflow.ts`: per-candidate validation/dedup isolation, capacity clamping against `MAX_COMPANIES_PER_CAMPAIGN`/`MAX_COMPANIES_PER_SOURCING_RUN`, discovered companies land as `companies` rows with `research_status: "IMPORTED"` — unchanged by `trigger/research-workflow.ts` downstream — 2026-09-12
+- [x] Shared `lib/leads/dedupe.ts`, reused by both CSV import and sourcing — 2026-09-12
+- [x] `app/actions/sourcing.ts` (fire-and-forget trigger, same shape as `startProcessingAction`) + `components/leads/source-companies.tsx` (polling-based progress, not Realtime — see note below), wired into the Leads page alongside `CsvImport` — 2026-09-12
+- [x] Settings: editable `maxCompaniesPerSourcingRun` — 2026-09-12
+- [x] Unit tests (happy path, cross-batch/within-batch dedup, invalid-candidate isolation, capacity clamping incl. zero-capacity short-circuit, provider-failure isolation, settings override) — 2026-09-12, `tests/unit/sourcing-workflow.test.ts`, `tests/unit/dedupe.test.ts`, `MockCompanySourcingProvider` cases in `tests/unit/mock-providers.test.ts`
+- [ ] Verified live against a live `trigger.dev dev`/prod worker (migration is live; the Trigger.dev task itself still needs deploying — see Not yet done)
+- [ ] Real sourcing provider (Apollo.io/Clay/etc.) — mock-only today, matching `lib/search/`'s existing situation
+
+**2026-09-12 note:** `supabase db push` requires `supabase login`, which is interactive/browser-based and can't be scripted in an agent session (same class of constraint as `npx trigger.dev@latest login` in `01-deployment.md`) -- unblocked instead with a user-supplied personal access token (`SUPABASE_ACCESS_TOKEN`), used for this session only, not persisted anywhere. `lib/database/types.generated.ts` was hand-edited first to match the migration so the rest of the codebase type-checked while blocked, then fully regenerated for real once the migration applied -- diffed identical apart from table ordering. Also decided: sourcing-run progress uses client-side polling of a server action, not Supabase Realtime — grepping `app/`/`components/` found no `.channel()` Realtime usage anywhere in this app today despite `00-architecture.md` describing it as the intended pattern, so polling was chosen to match what's actually built rather than introduce the first real Realtime wiring as a side effect of this feature.
+
 ## Phase 4 — Research
 - [x] Secure URL fetcher with SSRF protection (spec §12, §23) — 2026-09-10, B4 (`lib/security/ssrf.ts`, `lib/scraper/fetcher.ts`; known residual DNS-rebinding gap noted in code comments)
 - [x] Sitemap discovery + bounded crawler (default 15 pages/company) — 2026-09-10, B4 (`lib/scraper/{sitemap,crawler,robots,extract}.ts`, 13 passing tests against a local test server)
@@ -103,7 +117,13 @@ Migration applied live via `tools/supabase-migrate.ps1`'s underlying command; re
 - [ ] Playwright coverage of Review Lead → Approve → Export → Send (needs a live `trigger.dev dev` worker alongside the test run — see `tests/e2e/README.md`; sending itself is now built, see Phase 10 above, just not yet in the E2E suite)
 - [ ] RLS permission-isolation automated test (`04-testing.md`)
 - [ ] Automatic retry/rate limiting on send failures (see Phase 10 note)
+- [ ] `company-sourcing-workflow` deployed to Trigger.dev (dev and prod) — code is written and tested but not yet pushed via `tools/deploy-trigger.ps1`/`npx trigger.dev deploy`
+- [ ] Real `CompanySourcingProvider` (Apollo.io/Clay/etc.) — mock-only today
+- [ ] Real-time sourcing-run progress (currently client-side polling; no Supabase Realtime usage exists anywhere in the app yet)
+
+## Deferred (not planned for the near term)
+Per `ai-lead-generator-master-prompt-v2.md` (root of repo, an alternate/inspirational draft spec, not authoritative — `docs/spec.md` remains the source of truth): its Stage 5 (multi-step outreach sequencing), Stage 6 (reply classification/routing), Stage 7 (CRM sync), and Stage 8 (feedback loop on conversion outcomes) are explicitly out of scope for this codebase's near-term roadmap. Only Stage 1 (sourcing) was adopted, as Phase 3A above, adapted to this repo's existing TypeScript/Trigger.dev/Supabase architecture rather than the reference doc's Python/Prefect/PostgreSQL/HubSpot stack.
 
 ## Definition of done (spec §33)
 
-The full flow — Login → Create Campaign → Define ICP → Upload CSV → Start Processing → Research Companies → Find Decision Makers → Score Leads → Generate Personalized Emails → Inspect Evidence → Edit/Approve/Reject → Export Approved Leads — works end-to-end, builds cleanly, migrations apply cleanly, RLS is tested, mock mode runs the whole pipeline, and no core feature is an unimplemented placeholder.
+The full flow — Login → Create Campaign → Define ICP → Upload CSV (or Find Companies Automatically) → Start Processing → Research Companies → Find Decision Makers → Score Leads → Generate Personalized Emails → Inspect Evidence → Edit/Approve/Reject → Export Approved Leads — works end-to-end, builds cleanly, migrations apply cleanly, RLS is tested, mock mode runs the whole pipeline, and no core feature is an unimplemented placeholder.

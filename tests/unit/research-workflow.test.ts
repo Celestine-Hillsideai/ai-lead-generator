@@ -115,6 +115,7 @@ describe("processCompanyResearch", () => {
       emailProvider: "mock",
       maxPagesPerCompany: 15,
       maxCompaniesPerCampaign: 200,
+      maxCompaniesPerSourcingRun: 50,
       // All weight on industryFit (the mock qualification fixture's industryScore is 90),
       // zero everywhere else -- overall score should land at exactly the raw
       // industryScore regardless of the mock's other sub-scores, which would
@@ -147,6 +148,7 @@ describe("processCompanyResearch", () => {
       emailProvider: "mock",
       maxPagesPerCompany: 3,
       maxCompaniesPerCampaign: 200,
+      maxCompaniesPerSourcingRun: 50,
       qualificationWeights: {
         industryFit: 0.25,
         companySize: 0.15,
@@ -181,6 +183,7 @@ describe("processCompanyResearch", () => {
       emailProvider: "mock",
       maxPagesPerCompany: 15,
       maxCompaniesPerCampaign: 200,
+      maxCompaniesPerSourcingRun: 50,
       qualificationWeights: {
         industryFit: 0.25,
         companySize: 0.15,

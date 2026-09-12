@@ -9,7 +9,7 @@ How the pieces fit together and, specifically, how the Vercel-hosted frontend an
 | Next.js app (`app/`, `components/`) | **Vercel** | UI, auth, campaign/lead CRUD, kicking off pipeline runs, reading results |
 | API routes / server actions | **Vercel** (part of the Next.js app) | Validated entry points; the only place `TRIGGER_SECRET_KEY` is used to call `task.trigger()` |
 | Agent logic (`agents/`) + prompts (`prompts/`) | **Trigger.dev** (imported by tasks) | Research, decision-maker discovery, qualification, personalization, email generation |
-| Task orchestration (`trigger/`) | **Trigger.dev** | `campaign-workflow.ts`, `research-workflow.ts` — the retryable, per-company pipeline |
+| Task orchestration (`trigger/`) | **Trigger.dev** | `campaign-workflow.ts`, `research-workflow.ts` — the retryable, per-company pipeline; `sourcing-workflow.ts` — automated ICP-driven company discovery (spec §11A), writing `sourcing_runs` + `companies` the same way the others write their tables |
 | Database (Postgres + Auth + RLS + Realtime) | **Supabase** | Single source of truth for both sides; also the communication channel |
 
 ## Why two deploy targets instead of one

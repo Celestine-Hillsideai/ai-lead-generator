@@ -45,7 +45,7 @@ foreach ($key in $requiredForLocalDev) {
 if ($missing.Count -gt 0) {
     Write-Warning "Missing/blank required vars in .env.local:"
     $missing | ForEach-Object { Write-Warning "  - $_" }
-    Write-Output "`nAll other vars (AI provider keys, SEARCH_API_KEY, RESEND_API_KEY) can stay blank while MOCK_AI/MOCK_SEARCH/MOCK_EMAIL=true."
+    Write-Output "`nAll other vars (AI provider keys, SEARCH_API_KEY, SOURCING_API_KEY, RESEND_API_KEY) can stay blank while MOCK_AI/MOCK_SEARCH/MOCK_SOURCING/MOCK_EMAIL=true."
 } else {
     Write-Output "All required local-dev vars are set."
 }

@@ -61,7 +61,7 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
         </CardHeader>
         <CardBody>
           <p className="mb-4 text-sm text-ink-muted">Actually used by every campaign you run (spec §28 cost controls).</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div>
               <Label htmlFor="maxPagesPerCompany">Max pages per company</Label>
               <Input
@@ -81,6 +81,17 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
                 type="number"
                 min={1}
                 defaultValue={initial.maxCompaniesPerCampaign}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="maxCompaniesPerSourcingRun">Max companies per sourcing run</Label>
+              <Input
+                id="maxCompaniesPerSourcingRun"
+                name="maxCompaniesPerSourcingRun"
+                type="number"
+                min={1}
+                defaultValue={initial.maxCompaniesPerSourcingRun}
                 required
               />
             </div>

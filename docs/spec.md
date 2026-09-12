@@ -124,7 +124,7 @@ Use Claude Frontend Design Skill to create a polished, production-oriented inter
 
 **Campaign** — id, userId, name, description, industry, geography, companySize, targetRoles, offerDescription, valueProposition, CTA, status, createdAt, updatedAt
 
-**Company** — id, campaignId, name, website, normalizedDomain, industry, description, location, employeeSize, researchStatus, qualificationScore, qualificationTier, createdAt, updatedAt
+**Company** — id, campaignId, name, website, normalizedDomain, industry, description, location, employeeSize, researchStatus, qualificationScore, qualificationTier, sourceType ('csv_import' | 'auto_sourced', §11A), sourceProvider, sourcingRunId, createdAt, updatedAt
 
 **Contact** — id, companyId, firstName, lastName, fullName, title, email, emailStatus, sourceUrl, confidence, createdAt
 
@@ -139,6 +139,8 @@ Use Claude Frontend Design Skill to create a polished, production-oriented inter
 **AgentRun** — id, campaignId, companyId, agentType, status, input, output, error, retryCount, startedAt, completedAt
 
 **Suppression** — id, userId/campaignId, email, reason, createdAt
+
+**SourcingRun** — id, campaignId, requestedBy, provider, targetCount, status, discoveredCount, insertedCount, skippedCount, error, createdAt, completedAt (§11A)
 
 ## 9. Database Requirements
 
@@ -173,6 +175,19 @@ Campaign fields:
 - Normalize URLs to a canonical domain representation.
 - Show an import preview and validation errors before final import.
 - Provide import statistics: accepted, rejected, duplicate, invalid.
+
+See §11A for the automated-sourcing alternative to CSV import, added post-MVP.
+
+## 11A. Automated Company Sourcing
+
+Added post-MVP (was §37's "search-based lead discovery instead of only CSV input" roadmap item; promoted to built). Lets a campaign's company list be populated from its ICP instead of requiring an uploaded list — the concrete need being that a user should not have to already possess a list of prospects to run a campaign.
+
+- **Provider abstraction** (`CompanySourcingProvider`, `lib/sourcing/`), mirroring §14's decision-maker provider pattern: `findCompanies(query) -> SourcedCompanyCandidate[]`, where `query` is built entirely from the campaign's existing ICP fields (industry, geography, company size, target roles, offer description) — no separate ICP configuration is introduced. Every candidate carries a `sourceRef` pointing back to the provider's own result; a candidate's name/website must trace to that reference, never to a model's free-text output, so "never fabricate" (§4) is satisfied structurally rather than only by prompt instruction. No real provider (Apollo.io, Clay, or similar) is selected yet — mock-only today, the same situation §14's provider was in at MVP.
+- **Insertion**: discovered candidates land in the `Company` table in the exact same shape and `IMPORTED` status CSV import produces, distinguished only by descriptive/audit fields (`sourceType: 'csv_import' | 'auto_sourced'`, `sourceProvider`, `sourcingRunId`) — every downstream stage (research, decision-maker discovery, qualification, personalization, email generation) is unaware of which path a company came in through.
+- **Dedup**: sourced candidates are deduplicated by normalized domain against each other and against the campaign's existing companies, using the same normalization/dedup logic CSV import uses.
+- **Isolation**: an individual candidate that fails validation (unparseable URL, blank name) is skipped and counted, never aborting the run; a total provider-call failure marks the run failed without affecting any already-existing company or the parent campaign.
+- **Cost control**: a per-run target count, capped by both a per-run maximum and the campaign's overall company cap (§28) — sourcing never pushes a campaign over `maxCompaniesPerCampaign`.
+- **Audit**: one `SourcingRun` record per invocation (requested-by, provider, target count, discovered/inserted/skipped counts, status, error) — the frontend's progress display reads this record.
 
 ## 12. Website Research Agent
 
@@ -420,6 +435,7 @@ POST   /api/campaigns
 GET    /api/campaigns
 GET    /api/campaigns/:id
 POST   /api/campaigns/:id/leads/import
+POST   /api/campaigns/:id/leads/source    (§11A — automated sourcing, alternative to import)
 POST   /api/campaigns/:id/process
 GET    /api/campaigns/:id/leads
 GET    /api/leads/:id
@@ -508,6 +524,7 @@ ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 
 SEARCH_API_KEY=
+SOURCING_API_KEY=
 
 RESEND_API_KEY=
 
@@ -515,6 +532,7 @@ NEXT_PUBLIC_APP_URL=
 
 MOCK_AI=false
 MOCK_SEARCH=false
+MOCK_SOURCING=false
 MOCK_EMAIL=true
 ```
 
@@ -525,6 +543,7 @@ MOCK_EMAIL=true
 - **Phase 1 — Foundation:** Next.js, TypeScript, Claude Frontend Design Skill, Supabase, Auth, schema, RLS, base UI shell.
 - **Phase 2 — Campaigns:** Campaign creation, ICP configuration, campaign listing/detail.
 - **Phase 3 — Lead Import:** CSV upload, validation, normalization, deduplication, lead table.
+- **Phase 3A — Automated Sourcing (post-MVP, §11A):** ICP-driven company discovery provider abstraction, capacity-aware orchestration, insertion alongside CSV-imported companies.
 - **Phase 4 — Research:** Secure URL fetcher, sitemap discovery, bounded crawler, research agent, evidence store.
 - **Phase 5 — Decision Makers:** Provider abstraction, public-source research, candidate ranking, confidence.
 - **Phase 6 — Qualification:** Scoring engine, configurable weights, score visualization.
@@ -540,7 +559,7 @@ MOCK_EMAIL=true
 A complete MVP must allow a user to execute this flow end-to-end:
 
 ```
-Login → Create Campaign → Define ICP → Upload CSV → Start Processing
+Login → Create Campaign → Define ICP → Upload CSV (or Find Companies Automatically, §11A) → Start Processing
 → Research Companies → Find Decision Makers → Score Leads
 → Generate Personalized Emails → Inspect Evidence → Edit / Approve / Reject
 → Export Approved Leads
@@ -603,8 +622,8 @@ At completion, report:
 
 ## 37. Product Roadmap After MVP
 
-- Search-based lead discovery instead of only CSV input.
-- Google/Maps/company discovery where permitted.
+- ~~Search-based lead discovery instead of only CSV input.~~ Built — see §11A.
+- Google/Maps/company discovery where permitted (real `CompanySourcingProvider` implementation; §11A is mock-only today).
 - Expanded company and contact-data providers.
 - News and buying-signal monitoring.
 - Technology-stack detection.
@@ -614,6 +633,8 @@ At completion, report:
 - Meeting booking.
 - AI voice qualification.
 - Full AI SDR orchestration.
+
+Per `ai-lead-generator-master-prompt-v2.md` (an alternate/inspirational draft spec, not authoritative — this document remains the source of truth): its Stage 5 (multi-step outreach sequencing), Stage 6 (reply classification/routing), Stage 7 (CRM sync), and Stage 8 (feedback loop on conversion outcomes) map to the "Multi-step email sequences," "Reply classification," and "CRM integrations" items above, plus a not-yet-listed feedback-loop item; all remain explicitly deferred, out of scope for the near term. Only that document's Stage 1 (sourcing) was adopted, adapted to this codebase's existing TypeScript/Trigger.dev/Supabase architecture rather than its Python/Prefect/PostgreSQL/HubSpot stack.
 
 ---
 

@@ -70,3 +70,9 @@ export type AgentRunStatus = z.infer<typeof agentRunStatusSchema>;
 
 export const factTypeSchema = z.enum(["FACT", "INFERENCE", "UNKNOWN"]);
 export type FactType = z.infer<typeof factTypeSchema>;
+
+export const companySourceTypeSchema = z.enum(["csv_import", "auto_sourced"]);
+export type CompanySourceType = z.infer<typeof companySourceTypeSchema>;
+
+export const sourcingRunStatusSchema = z.enum(["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]);
+export type SourcingRunStatus = z.infer<typeof sourcingRunStatusSchema>;
