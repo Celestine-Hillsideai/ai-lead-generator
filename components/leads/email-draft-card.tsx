@@ -7,6 +7,7 @@ import {
   editEmailAction,
   regenerateEmailAction,
   sendEmailAction,
+  deleteEmailDraftAction,
 } from "../../app/actions/emails";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -213,6 +214,21 @@ export function EmailDraftCard({
               {draft.status === "SENT" ? "Sent" : "Failed to send"} to {recipient.fullName ? `${recipient.fullName} ` : ""}
               &lt;{recipient.email}&gt;
             </span>
+          )}
+
+          {!editing && (
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={isPending}
+              className="ml-auto"
+              onClick={() => {
+                if (!window.confirm("Delete this email draft? This cannot be undone.")) return;
+                run(() => deleteEmailDraftAction(draft.id, revalidatePathTarget));
+              }}
+            >
+              Delete
+            </Button>
           )}
         </div>
 

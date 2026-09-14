@@ -86,3 +86,20 @@ export async function resumeCampaignAction(campaignId: string): Promise<{ error?
   revalidatePath(`/campaigns/${campaignId}`);
   return {};
 }
+
+/**
+ * Deletes a campaign and everything under it (companies, research,
+ * contacts, qualifications, email drafts + their audit history, sourcing
+ * runs, agent runs) -- all cascade via `on delete cascade` foreign keys
+ * (supabase/migrations/20260910120001_core_tables.sql and later), so this
+ * single delete is the only DB call needed. RLS (`campaigns_owner_all`)
+ * already scopes this to campaigns the signed-in user owns.
+ */
+export async function deleteCampaignAction(campaignId: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("campaigns").delete().eq("id", campaignId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/campaigns");
+  redirect("/campaigns");
+}

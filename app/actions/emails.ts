@@ -229,6 +229,22 @@ export async function regenerateEmailAction(
 }
 
 /**
+ * Deletes an email draft outright (any status) -- distinct from Reject,
+ * which keeps a REJECTED record for the audit trail. This is for a draft
+ * the user considers noise entirely (e.g. a low-quality NEEDS_REVIEW
+ * company they don't want cluttering the queue), not a rejection decision
+ * worth remembering. email_draft_events rows for it cascade-delete with it.
+ */
+export async function deleteEmailDraftAction(emailDraftId: string, revalidatePathTarget: string): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("email_drafts").delete().eq("id", emailDraftId);
+  if (error) return { error: error.message };
+
+  revalidatePath(revalidatePathTarget);
+  return {};
+}
+
+/**
  * Sends an already-approved draft through the configured EmailProvider, per
  * docs/spec.md §19 ("Only approved emails can be exported or sent") and §20
  * (provider abstraction, suppression/invalid-contact enforcement). Kept as

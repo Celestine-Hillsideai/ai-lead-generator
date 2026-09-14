@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "../../../../components/ui
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import { ProcessControls } from "../../../../components/campaigns/process-controls";
+import { DeleteCampaignButton } from "../../../../components/campaigns/delete-campaign-button";
 import { PipelineProgress } from "../../../../components/campaigns/pipeline-progress";
 import { CsvImport } from "../../../../components/leads/csv-import";
 import { SourceCompanies } from "../../../../components/leads/source-companies";
@@ -48,6 +49,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
                 <Button variant="secondary">Export approved</Button>
               </a>
             )}
+            <DeleteCampaignButton campaignId={campaign.id} campaignName={campaign.name} />
           </>
         }
       />

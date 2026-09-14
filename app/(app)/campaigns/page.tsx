@@ -5,6 +5,7 @@ import { PageHeader } from "../../../components/layout/page-header";
 import { Button } from "../../../components/ui/button";
 import { Card, CardBody } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
+import { DeleteCampaignButton } from "../../../components/campaigns/delete-campaign-button";
 import { formatRelativeTime } from "../../../lib/utils/format";
 import type { CampaignStatus } from "../../../types/status";
 
@@ -44,19 +45,20 @@ export default async function CampaignsPage() {
       ) : (
         <div className="space-y-3">
           {campaigns.map((c) => (
-            <Link key={c.id} href={`/campaigns/${c.id}`}>
-              <Card className="transition-colors hover:border-accent-400">
-                <CardBody className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-ink">{c.name}</p>
-                    <p className="text-sm text-ink-muted">
-                      {c.industry ?? "No industry set"} · Updated {formatRelativeTime(c.updated_at)}
-                    </p>
-                  </div>
+            <Card key={c.id} className="transition-colors hover:border-accent-400">
+              <CardBody className="flex items-center justify-between gap-4">
+                <Link href={`/campaigns/${c.id}`} className="min-w-0 flex-1">
+                  <p className="font-medium text-ink">{c.name}</p>
+                  <p className="text-sm text-ink-muted">
+                    {c.industry ?? "No industry set"} · Updated {formatRelativeTime(c.updated_at)}
+                  </p>
+                </Link>
+                <div className="flex shrink-0 items-center gap-3">
                   <Badge tone={STATUS_TONE[c.status as CampaignStatus]}>{c.status}</Badge>
-                </CardBody>
-              </Card>
-            </Link>
+                  <DeleteCampaignButton campaignId={c.id} campaignName={c.name} size="sm" />
+                </div>
+              </CardBody>
+            </Card>
           ))}
         </div>
       )}
