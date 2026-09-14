@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AIProvider, GenerateJsonParams } from "../../lib/ai/types";
 import { runResearchAgent } from "../../agents/research-agent";
-import { runDecisionMakerAgent } from "../../agents/decision-maker-agent";
+import { runDecisionMakerAgent, splitFullName } from "../../agents/decision-maker-agent";
 import { runQualificationAgent } from "../../agents/qualification-agent";
 import { runPersonalizationAgent } from "../../agents/personalization-agent";
 import { runEmailAgent, needsReview } from "../../agents/email-agent";
@@ -123,6 +123,62 @@ describe("runDecisionMakerAgent", () => {
       pages: samplePages,
     });
     expect(result.candidates[0]!.emailStatus).toBe("unknown");
+  });
+
+  it("backfills firstName/lastName from fullName when the model leaves them null (so email personalization always has a real name to greet, per the 2026-09-14 blank-salutation fix)", async () => {
+    const responseWithoutSplitName = JSON.stringify({
+      candidates: [
+        {
+          firstName: null,
+          lastName: null,
+          fullName: "Shola Akinlade",
+          title: "Founder",
+          email: null,
+          emailStatus: "unknown",
+          sourceUrl: "https://paystack.com/about",
+          confidence: 0.6,
+          relevanceReason: "Founder",
+        },
+      ],
+    });
+    const provider = queuedProvider([responseWithoutSplitName]);
+    const result = await runDecisionMakerAgent(provider, noOpSearchProvider, {
+      companyName: "Paystack",
+      companyDomain: "paystack.com",
+      targetRoles: ["CEO", "Founder"],
+      pages: samplePages,
+    });
+    expect(result.candidates[0]!.firstName).toBe("Shola");
+    expect(result.candidates[0]!.lastName).toBe("Akinlade");
+  });
+
+  it("doesn't override firstName the model already provided", async () => {
+    const provider = queuedProvider([validResponse]); // firstName "Jane", fullName "Jane Doe"
+    const result = await runDecisionMakerAgent(provider, noOpSearchProvider, {
+      companyName: "Acme",
+      companyDomain: "acme.example.com",
+      targetRoles: ["CEO"],
+      pages: samplePages,
+    });
+    expect(result.candidates[0]!.firstName).toBe("Jane");
+  });
+});
+
+describe("splitFullName", () => {
+  it("splits a two-part name", () => {
+    expect(splitFullName("Shola Akinlade")).toEqual({ firstName: "Shola", lastName: "Akinlade" });
+  });
+
+  it("joins remaining parts into lastName for a multi-part name", () => {
+    expect(splitFullName("Mary Anne Smith")).toEqual({ firstName: "Mary", lastName: "Anne Smith" });
+  });
+
+  it("leaves lastName null for a single-word name", () => {
+    expect(splitFullName("Madonna")).toEqual({ firstName: "Madonna", lastName: null });
+  });
+
+  it("returns nulls for an empty/whitespace-only string", () => {
+    expect(splitFullName("   ")).toEqual({ firstName: null, lastName: null });
   });
 });
 
