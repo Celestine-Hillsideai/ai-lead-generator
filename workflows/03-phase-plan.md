@@ -118,7 +118,7 @@ Migration applied live via `tools/supabase-migrate.ps1`'s underlying command; re
 - [ ] Playwright coverage of Review Lead → Approve → Export → Send (needs a live `trigger.dev dev` worker alongside the test run — see `tests/e2e/README.md`; sending itself is now built, see Phase 10 above, just not yet in the E2E suite)
 - [ ] RLS permission-isolation automated test (`04-testing.md`)
 - [ ] Automatic retry/rate limiting on send failures (see Phase 10 note)
-- [ ] Real Tavily key exercised end-to-end against the live app (unit-tested against stubbed responses; `MOCK_SOURCING` stays the default in prod until this happens)
+- [ ] Real Tavily key exercised end-to-end through the actual web app/UI (verified 2026-09-14 by calling `TavilySourcingProvider` directly against a real key + real OpenAI, correctly resolving Paystack/Flutterwave/Interswitch to their real domains — not yet clicked through "Find companies automatically" in the running app; `MOCK_SOURCING` stays the default in prod until a real key is synced there)
 - [ ] A paid Apollo.io plan to actually exercise `ApolloSourcingProvider` live (Free plan confirmed inaccessible)
 - [ ] Real-time sourcing-run progress (currently client-side polling; no Supabase Realtime usage exists anywhere in the app yet)
 
