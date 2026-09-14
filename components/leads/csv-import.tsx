@@ -32,14 +32,14 @@ export function CsvImport({ campaignId }: { campaignId: string }) {
           action={(formData) => {
             formAction(formData);
           }}
-          className="flex items-center gap-3"
+          className="flex flex-wrap items-center gap-3"
         >
           <input
             type="file"
             name="file"
             accept=".csv,text/csv"
             required
-            className="text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-accent-700 hover:file:bg-accent-100"
+            className="min-w-0 flex-1 text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-accent-700 hover:file:bg-accent-100"
           />
           <Button type="submit" disabled={pending} size="sm">
             {pending ? "Importing…" : "Import"}

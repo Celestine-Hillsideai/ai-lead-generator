@@ -98,7 +98,7 @@ export function SourceCompanies({
             This campaign is already at its company limit. Raise the cap in Settings to source more.
           </p>
         ) : (
-          <form action={formAction} className="flex items-end gap-3">
+          <form action={formAction} className="flex flex-wrap items-end gap-3">
             <div className="max-w-[160px]">
               <Label htmlFor="targetCount">Target count</Label>
               <Input
