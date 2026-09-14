@@ -22,3 +22,23 @@ export const companySourcingExtractionOutputSchema = z.object({
   candidates: z.array(companySourcingExtractionCandidateSchema),
 });
 export type CompanySourcingExtractionOutput = z.infer<typeof companySourcingExtractionOutputSchema>;
+
+/**
+ * Second-stage output: given a flat, numbered list of web-search results
+ * gathered from per-company "<name> official website"-style searches (real
+ * search results, never company-search results directly used as the final
+ * site -- see lib/sourcing/tavily.ts), pick which single result (if any) is
+ * each named company's own official site. `resultIndex` ties every
+ * resolution back to one real, already-fetched result -- same "index into
+ * real data, never a model-written URL" discipline as the extraction stage.
+ * A company with no good match is simply omitted, not forced.
+ */
+export const companySourcingResolutionEntrySchema = z.object({
+  companyName: z.string().min(1),
+  resultIndex: z.number().int().nonnegative(),
+});
+
+export const companySourcingResolutionOutputSchema = z.object({
+  resolutions: z.array(companySourcingResolutionEntrySchema),
+});
+export type CompanySourcingResolutionOutput = z.infer<typeof companySourcingResolutionOutputSchema>;

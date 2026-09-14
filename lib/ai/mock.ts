@@ -8,9 +8,9 @@ import type { AIProvider, GenerateJsonParams } from "./types";
  * (not a special-cased bypass).
  */
 
-// "personalization", "email", and "company_sourcing" are built dynamically (see the build*Fixture functions below) rather than listed here.
+// "personalization", "email", "company_sourcing", and "company_sourcing_resolution" are built dynamically (see the build*Fixture functions below) rather than listed here.
 const FIXTURES: Record<
-  Exclude<GenerateJsonParams["agentType"], "personalization" | "email" | "company_sourcing">,
+  Exclude<GenerateJsonParams["agentType"], "personalization" | "email" | "company_sourcing" | "company_sourcing_resolution">,
   unknown
 > = {
   research: {
@@ -115,6 +115,20 @@ function buildCompanySourcingFixture(userPrompt: string) {
   return { candidates: hasResult ? [{ resultIndex: 0, companyName: "Mock Sourced Co" }] : [] };
 }
 
+/** For each "## Company: X" section in the prompt, resolve to that section's first listed result index, if any. */
+function buildCompanySourcingResolutionFixture(userPrompt: string) {
+  const sections = userPrompt.split(/^## Company: /m).slice(1);
+  const resolutions: { companyName: string; resultIndex: number }[] = [];
+  for (const section of sections) {
+    const [companyName, ...rest] = section.split("\n");
+    const match = rest.join("\n").match(/--- BEGIN UNTRUSTED EXTERNAL CONTENT: result (\d+) ---/);
+    if (companyName && match) {
+      resolutions.push({ companyName: companyName.trim(), resultIndex: Number(match[1]) });
+    }
+  }
+  return { resolutions };
+}
+
 export class MockAIProvider implements AIProvider {
   readonly name = "mock";
 
@@ -127,6 +141,9 @@ export class MockAIProvider implements AIProvider {
     }
     if (params.agentType === "company_sourcing") {
       return JSON.stringify(buildCompanySourcingFixture(params.userPrompt));
+    }
+    if (params.agentType === "company_sourcing_resolution") {
+      return JSON.stringify(buildCompanySourcingResolutionFixture(params.userPrompt));
     }
     return JSON.stringify(FIXTURES[params.agentType]);
   }
