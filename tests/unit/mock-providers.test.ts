@@ -11,6 +11,7 @@ import {
   emailOutputSchema,
   companySourcingExtractionOutputSchema,
   companySourcingResolutionOutputSchema,
+  decisionMakerSearchExtractionOutputSchema,
 } from "../../types/contracts";
 import type { AgentType } from "../../types/status";
 
@@ -25,6 +26,7 @@ describe("MockAIProvider", () => {
     ["email", emailOutputSchema],
     ["company_sourcing", companySourcingExtractionOutputSchema],
     ["company_sourcing_resolution", companySourcingResolutionOutputSchema],
+    ["decision_maker_search", decisionMakerSearchExtractionOutputSchema],
   ];
 
   it.each(cases)("returns a schema-valid fixture for agentType=%s", async (agentType, schema) => {

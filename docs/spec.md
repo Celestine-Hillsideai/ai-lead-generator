@@ -244,6 +244,8 @@ Implement an independent research agent with bounded crawling.
 - Never fabricate a person, title, email address, or employment relationship.
 - Contact email status must distinguish verified, public, unverified, invalid, and unknown.
 
+**Provider (`SearchProvider`, `lib/search/`)**: real implementation is **Tavily** (`lib/search/tavily.ts`, `TavilySearchProvider`) — the same web-search API `lib/sourcing/tavily.ts` uses for company sourcing (§11A), a separate env var/key on purpose (`SEARCH_API_KEY`, distinct from `SOURCING_API_KEY`) even though both point at the same Tavily account today. One search (`"<company>" <role> OR founder OR "leadership team"`, boosted toward the company's own domain) plus one AI extraction call (`decision_maker_search` agent type, `prompts/decision-maker-search.prompt.ts`) surfaces real, named candidates for `agents/decision-maker-agent.ts`'s own synthesis pass (which still also weighs the company's own crawled pages) to consider. Structurally fabrication-proof for the person/URL, same `resultIndex`-into-real-results discipline as §11A's providers. **Email specifically** gets an extra, code-level (not just prompt-level) guard: a candidate's email is only kept if it's found to literally appear in that same search result's content, verified in code, not just asserted by the model — otherwise it's dropped to `null`/`"unknown"`, never surfaced as a guess. In practice most companies don't publish a named individual's email anywhere public, so a high rate of `"unknown"` is expected, correct behavior, not a defect. Confirmed live 2026-09-14 (correctly identified Paystack's, Flutterwave's, and Interswitch's real founders/CEOs from real pages; no fabricated emails).
+
 ## 15. Qualification Agent
 
 Default ICP scoring:

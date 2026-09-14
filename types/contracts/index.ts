@@ -4,3 +4,4 @@ export * from "./qualification";
 export * from "./personalization";
 export * from "./email";
 export * from "./company-sourcing";
+export * from "./decision-maker-search";

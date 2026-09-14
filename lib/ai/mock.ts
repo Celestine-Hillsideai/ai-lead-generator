@@ -8,9 +8,12 @@ import type { AIProvider, GenerateJsonParams } from "./types";
  * (not a special-cased bypass).
  */
 
-// "personalization", "email", "company_sourcing", and "company_sourcing_resolution" are built dynamically (see the build*Fixture functions below) rather than listed here.
+// "personalization", "email", "company_sourcing", "company_sourcing_resolution", and "decision_maker_search" are built dynamically (see the build*Fixture functions below) rather than listed here.
 const FIXTURES: Record<
-  Exclude<GenerateJsonParams["agentType"], "personalization" | "email" | "company_sourcing" | "company_sourcing_resolution">,
+  Exclude<
+    GenerateJsonParams["agentType"],
+    "personalization" | "email" | "company_sourcing" | "company_sourcing_resolution" | "decision_maker_search"
+  >,
   unknown
 > = {
   research: {
@@ -129,6 +132,12 @@ function buildCompanySourcingResolutionFixture(userPrompt: string) {
   return { resolutions };
 }
 
+/** One candidate at index 0 if the prompt shows at least one result, otherwise none. */
+function buildDecisionMakerSearchFixture(userPrompt: string) {
+  const hasResult = /--- BEGIN UNTRUSTED EXTERNAL CONTENT: result 0 ---/.test(userPrompt);
+  return { candidates: hasResult ? [{ resultIndex: 0, fullName: "Mock Search Jane", title: "CEO", email: null }] : [] };
+}
+
 export class MockAIProvider implements AIProvider {
   readonly name = "mock";
 
@@ -144,6 +153,9 @@ export class MockAIProvider implements AIProvider {
     }
     if (params.agentType === "company_sourcing_resolution") {
       return JSON.stringify(buildCompanySourcingResolutionFixture(params.userPrompt));
+    }
+    if (params.agentType === "decision_maker_search") {
+      return JSON.stringify(buildDecisionMakerSearchFixture(params.userPrompt));
     }
     return JSON.stringify(FIXTURES[params.agentType]);
   }

@@ -1,20 +1,28 @@
 import type { SearchProvider } from "./types";
 import { MockSearchProvider } from "./mock";
+import { TavilySearchProvider } from "./tavily";
+import { getAIProvider } from "../ai";
 
 export type { SearchProvider, DecisionMakerSearchQuery, DecisionMakerSearchResult } from "./types";
 
 /**
- * No real third-party search/contact-data provider is wired up yet (spec
- * §14 leaves the choice open, and the roadmap in spec §37 defers "expanded
- * contact-data providers" to post-MVP). Only MOCK_SEARCH=true is supported
- * today; add a real branch here (mirroring lib/ai/index.ts's pattern) once
- * one is selected.
+ * MOCK_SEARCH is the global kill switch, same pattern as MOCK_EMAIL/
+ * MOCK_SOURCING -- a real call only happens if MOCK_SEARCH is explicitly not
+ * "true" AND SEARCH_API_KEY is present. Real provider: Tavily
+ * (lib/search/tavily.ts), the same web-search API lib/sourcing/tavily.ts
+ * uses for company sourcing -- a separate env var/key on purpose (company-
+ * level ICP discovery and person-level lookup within an already-known
+ * company are different concerns/quotas even when the underlying account
+ * happens to be the same Tavily account today).
  */
 export function getSearchProvider(): SearchProvider {
   if (process.env.MOCK_SEARCH === "true") {
     return new MockSearchProvider();
   }
-  throw new Error(
-    "No real SearchProvider is configured yet -- set MOCK_SEARCH=true, or implement and wire up a real provider in lib/search/."
-  );
+
+  const apiKey = process.env.SEARCH_API_KEY;
+  if (!apiKey) {
+    throw new Error("SEARCH_API_KEY is required when MOCK_SEARCH is not true.");
+  }
+  return new TavilySearchProvider(apiKey, getAIProvider());
 }

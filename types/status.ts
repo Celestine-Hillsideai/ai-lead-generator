@@ -57,13 +57,14 @@ export const emailDraftStatusSchema = z.enum([
 export type EmailDraftStatus = z.infer<typeof emailDraftStatusSchema>;
 
 /**
- * "company_sourcing"/"company_sourcing_resolution" (lib/sourcing/tavily.ts's
- * two internal AI calls -- see its module docstring) are deliberately NOT in
- * agent_runs.agent_type's DB check constraint -- they're one provider's
- * internal implementation detail behind CompanySourcingProvider, not a
- * top-level pipeline stage the workflow logs per spec §21, so nothing calls
- * insertAgentRun with them. Only needed here so GenerateJsonParams/
- * MockAIProvider can dispatch on them like any other agent type.
+ * "company_sourcing"/"company_sourcing_resolution" (lib/sourcing/tavily.ts)
+ * and "decision_maker_search" (lib/search/tavily.ts) are deliberately NOT in
+ * agent_runs.agent_type's DB check constraint -- they're a provider's
+ * internal implementation detail behind CompanySourcingProvider/
+ * SearchProvider, not a top-level pipeline stage the workflow logs per spec
+ * §21, so nothing calls insertAgentRun with them. Only needed here so
+ * GenerateJsonParams/MockAIProvider can dispatch on them like any other
+ * agent type.
  */
 export const agentTypeSchema = z.enum([
   "research",
@@ -73,6 +74,7 @@ export const agentTypeSchema = z.enum([
   "email",
   "company_sourcing",
   "company_sourcing_resolution",
+  "decision_maker_search",
 ]);
 export type AgentType = z.infer<typeof agentTypeSchema>;
 
