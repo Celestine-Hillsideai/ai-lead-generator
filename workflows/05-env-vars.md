@@ -11,6 +11,7 @@ Base list from `docs/spec.md` §31, split by which deploy target actually needs 
 | `OPENAI_API_KEY` | — | ✅ | Same as above — only if OpenAI is the selected provider. |
 | `SEARCH_API_KEY` | — | ✅ | Used by the Decision-Maker Research Agent, which runs in a Trigger.dev task. |
 | `SOURCING_API_KEY` | — | ✅ | Used by the company-sourcing provider (spec §11A, `lib/sourcing/`), which runs in `trigger/sourcing-workflow.ts`. Deliberately a separate key/concern from `SEARCH_API_KEY` — company-level ICP discovery vs. person-level lookup within an already-known company. |
+| `SOURCING_PROVIDER` | — | ✅ | `"tavily"` (default) or `"apollo"` — which real implementation `SOURCING_API_KEY` belongs to (spec §11A). Tavily needs no other var; being AI-backed, it also reads whichever `MOCK_AI`/`OPENAI_API_KEY`/`ANTHROPIC_API_KEY` config is already set. |
 | `RESEND_API_KEY` | — | ✅ | Sending happens from the Trigger.dev pipeline (Phase 10), not from a Vercel request. |
 | `NEXT_PUBLIC_APP_URL` | ✅ | — | Used for building links back to the app (e.g. in emails); frontend concern. |
 | `MOCK_AI` / `MOCK_SEARCH` / `MOCK_SOURCING` / `MOCK_EMAIL` | — | ✅ | Only relevant where the agents run. |

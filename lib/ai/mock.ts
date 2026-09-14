@@ -8,8 +8,11 @@ import type { AIProvider, GenerateJsonParams } from "./types";
  * (not a special-cased bypass).
  */
 
-// "personalization" and "email" are built dynamically (see buildPersonalizationFixture / buildEmailFixture below) rather than listed here.
-const FIXTURES: Record<Exclude<GenerateJsonParams["agentType"], "personalization" | "email">, unknown> = {
+// "personalization", "email", and "company_sourcing" are built dynamically (see the build*Fixture functions below) rather than listed here.
+const FIXTURES: Record<
+  Exclude<GenerateJsonParams["agentType"], "personalization" | "email" | "company_sourcing">,
+  unknown
+> = {
   research: {
     companySummary: "Acme Logistics is a freight and warehousing company operating in West Africa.",
     industry: "Logistics",
@@ -106,6 +109,12 @@ function buildEmailFixture(userPrompt: string) {
   };
 }
 
+/** One candidate at index 0 if the prompt shows at least one result, otherwise none -- mirrors real behavior for an empty result set. */
+function buildCompanySourcingFixture(userPrompt: string) {
+  const hasResult = /--- BEGIN UNTRUSTED EXTERNAL CONTENT: result 0 ---/.test(userPrompt);
+  return { candidates: hasResult ? [{ resultIndex: 0, companyName: "Mock Sourced Co" }] : [] };
+}
+
 export class MockAIProvider implements AIProvider {
   readonly name = "mock";
 
@@ -115,6 +124,9 @@ export class MockAIProvider implements AIProvider {
     }
     if (params.agentType === "email") {
       return JSON.stringify(buildEmailFixture(params.userPrompt));
+    }
+    if (params.agentType === "company_sourcing") {
+      return JSON.stringify(buildCompanySourcingFixture(params.userPrompt));
     }
     return JSON.stringify(FIXTURES[params.agentType]);
   }

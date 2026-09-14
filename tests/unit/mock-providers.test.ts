@@ -9,6 +9,7 @@ import {
   qualificationOutputSchema,
   personalizationOutputSchema,
   emailOutputSchema,
+  companySourcingExtractionOutputSchema,
 } from "../../types/contracts";
 import type { AgentType } from "../../types/status";
 
@@ -21,6 +22,7 @@ describe("MockAIProvider", () => {
     ["qualification", qualificationOutputSchema],
     ["personalization", personalizationOutputSchema],
     ["email", emailOutputSchema],
+    ["company_sourcing", companySourcingExtractionOutputSchema],
   ];
 
   it.each(cases)("returns a schema-valid fixture for agentType=%s", async (agentType, schema) => {
