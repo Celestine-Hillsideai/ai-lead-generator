@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../components/layout/breadcrumbs";
 import { Card, CardBody, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -51,6 +52,7 @@ const REFERENCE_SECTIONS = [
 export default function HelpPage() {
   return (
     <div className="mx-auto max-w-3xl">
+      <Breadcrumbs items={[{ label: "Getting started" }]} />
       <PageHeader
         title="Getting started"
         description="A short, practical walkthrough of the whole app, start to finish."

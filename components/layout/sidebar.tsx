@@ -41,8 +41,21 @@ export function Sidebar() {
           <NavLink key={item.href} href={item.href} label={item.label} active={isActive(item.href)} />
         ))}
       </nav>
-      <div className="space-y-1 border-t border-border px-3 py-4">
-        <NavLink href={HELP_ITEM.href} label={HELP_ITEM.label} active={isActive(HELP_ITEM.href)} />
+      <div className="border-t border-border px-3 py-4">
+        <Link
+          href={HELP_ITEM.href}
+          className={cn(
+            "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
+            isActive(HELP_ITEM.href)
+              ? "border-accent-300 bg-accent-100 text-accent-700"
+              : "border-accent-200 bg-accent-50 text-accent-700 hover:border-accent-300 hover:bg-accent-100"
+          )}
+        >
+          <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500 text-xs font-bold text-white">
+            ?
+          </span>
+          {HELP_ITEM.label}
+        </Link>
       </div>
     </aside>
   );

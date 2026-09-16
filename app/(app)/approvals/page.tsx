@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getApprovalQueue, getEmailDraftHistory } from "../../../lib/database/queries";
 import { PageHeader } from "../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../components/layout/breadcrumbs";
 import { Card, CardBody } from "../../../components/ui/card";
 import { ApprovalQueue, type ApprovalQueueEntry } from "../../../components/leads/approval-queue";
 
@@ -57,6 +58,7 @@ export default async function ApprovalsPage() {
   return (
     <div className="space-y-10">
       <div>
+        <Breadcrumbs items={[{ label: "Approvals" }]} />
         <PageHeader
           title="Approvals"
           description={`${reviewEntries.length} email${reviewEntries.length === 1 ? "" : "s"} awaiting review across all campaigns.`}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getDashboardMetrics, getCampaignsForUser } from "../../../lib/database/queries";
 import { PageHeader } from "../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../components/layout/breadcrumbs";
 import { MetricCard } from "../../../components/dashboard/metric-card";
 import { Button } from "../../../components/ui/button";
 import { Card, CardBody } from "../../../components/ui/card";
@@ -22,6 +23,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <Breadcrumbs items={[{ label: "Dashboard" }]} />
       <PageHeader
         title="Dashboard"
         description="Overview of your campaigns and pipeline."

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { getCampaignsForUser } from "../../../lib/database/queries";
 import { PageHeader } from "../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../components/layout/breadcrumbs";
 import { Button } from "../../../components/ui/button";
 import { Card, CardBody } from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
@@ -29,6 +30,7 @@ export default async function CampaignsPage() {
 
   return (
     <div>
+      <Breadcrumbs items={[{ label: "Campaigns" }]} />
       <PageHeader
         title="Campaigns"
         actions={
