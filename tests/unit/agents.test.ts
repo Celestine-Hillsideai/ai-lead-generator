@@ -213,6 +213,148 @@ describe("runDecisionMakerAgent", () => {
     });
     expect(result.candidates[0]!.email).toBeNull();
   });
+
+  it("matches a crawled-page name to a Hunter record with no name attached, via the email's own local part (2026-09-16 real bug: nasiru.dantata@dantata-sawoe.com never matched the board-page name Nasiru A. Dantata under exact-fullName-only matching)", async () => {
+    const hunterResult = {
+      fullName: "nasiru.dantata@dantata-sawoe.com", // Hunter had no first/last name for this address
+      title: "Unknown",
+      email: "nasiru.dantata@dantata-sawoe.com",
+      emailStatus: "unknown" as const,
+      sourceUrl: null,
+      confidence: 0.5,
+    };
+    const boardPageResponse = JSON.stringify({
+      candidates: [
+        {
+          firstName: null,
+          lastName: null,
+          fullName: "Nasiru A. Dantata",
+          title: "Executive Director",
+          email: null,
+          emailStatus: "unknown",
+          sourceUrl: "https://www.dantata-sawoe.com/board-of-directors",
+          confidence: 1,
+          relevanceReason: "Executive Director",
+        },
+      ],
+    });
+
+    const provider = queuedProvider([boardPageResponse]);
+    const result = await runDecisionMakerAgent(provider, fakeSearchProvider([hunterResult]), {
+      companyName: "Dantata & Sawoe",
+      companyDomain: "dantata-sawoe.com",
+      targetRoles: ["Executive Director"],
+      pages: samplePages,
+    });
+
+    expect(result.candidates[0]!.email).toBe("nasiru.dantata@dantata-sawoe.com");
+  });
+
+  it("does not cross-match a different person who happens to share a surname at the same company", async () => {
+    // Same real scenario: two different Dantatas are real candidates, but Hunter only has an address for one of them.
+    const hunterResult = {
+      fullName: "nasiru.dantata@dantata-sawoe.com",
+      title: "Unknown",
+      email: "nasiru.dantata@dantata-sawoe.com",
+      emailStatus: "unknown" as const,
+      sourceUrl: null,
+      confidence: 0.5,
+    };
+    const boardPageResponse = JSON.stringify({
+      candidates: [
+        {
+          firstName: null,
+          lastName: null,
+          fullName: "Alhaji Mubarak A. Dantata",
+          title: "Chairman",
+          email: null,
+          emailStatus: "unknown",
+          sourceUrl: "https://www.dantata-sawoe.com/board-of-directors",
+          confidence: 1,
+          relevanceReason: "Chairman",
+        },
+      ],
+    });
+
+    const provider = queuedProvider([boardPageResponse]);
+    const result = await runDecisionMakerAgent(provider, fakeSearchProvider([hunterResult]), {
+      companyName: "Dantata & Sawoe",
+      companyDomain: "dantata-sawoe.com",
+      targetRoles: ["Chairman"],
+      pages: samplePages,
+    });
+
+    // Mubarak must NOT be given Nasiru's email just because they share a surname.
+    expect(result.candidates[0]!.email).toBeNull();
+  });
+
+  it("does not cross-match on a shared surname AND shared first initial (regression: an earlier initial-based fallback matched Muktar Dantata's real email to a different candidate, Mubarak Dantata, live against the actual company this bug was found on)", async () => {
+    const hunterResult = {
+      fullName: "Muktar Dantata",
+      title: "Civil Engineer",
+      email: "muktar.dantata@dantata-sawoe.com",
+      emailStatus: "verified" as const,
+      sourceUrl: null,
+      confidence: 0.7,
+    };
+    const boardPageResponse = JSON.stringify({
+      candidates: [
+        {
+          firstName: null,
+          lastName: null,
+          fullName: "Alhaji Mubarak A. Dantata",
+          title: "Chairman",
+          email: null,
+          emailStatus: "unknown",
+          sourceUrl: "https://www.dantata-sawoe.com/board-of-directors",
+          confidence: 1,
+          relevanceReason: "Chairman",
+        },
+      ],
+    });
+
+    const provider = queuedProvider([boardPageResponse]);
+    const result = await runDecisionMakerAgent(provider, fakeSearchProvider([hunterResult]), {
+      companyName: "Dantata & Sawoe",
+      companyDomain: "dantata-sawoe.com",
+      targetRoles: ["Chairman"],
+      pages: samplePages,
+    });
+
+    expect(result.candidates[0]!.email).toBeNull();
+  });
+
+  it("leaves a candidate unresolved when the SearchProvider only has generic role addresses, not a named person (e.g. info@/personnel@ at a company with no individual Hunter/Tavily data)", async () => {
+    const genericResults = [
+      { fullName: "info@setraco.net", title: "Unknown", email: "info@setraco.net", emailStatus: "unknown" as const, sourceUrl: null, confidence: 0.5 },
+      { fullName: "recruitment@setraco.net", title: "Unknown", email: "recruitment@setraco.net", emailStatus: "unknown" as const, sourceUrl: null, confidence: 0.5 },
+    ];
+    const boardPageResponse = JSON.stringify({
+      candidates: [
+        {
+          firstName: null,
+          lastName: null,
+          fullName: "Chief (Dr.) Abu Inu-Umoru",
+          title: "Executive Chairman",
+          email: null,
+          emailStatus: "unknown",
+          sourceUrl: "https://www.setraco.net/about",
+          confidence: 1,
+          relevanceReason: "Executive Chairman",
+        },
+      ],
+    });
+
+    const provider = queuedProvider([boardPageResponse]);
+    const result = await runDecisionMakerAgent(provider, fakeSearchProvider(genericResults), {
+      companyName: "Setraco",
+      companyDomain: "setraco.net",
+      targetRoles: ["Chairman"],
+      pages: samplePages,
+    });
+
+    expect(result.candidates[0]!.email).toBeNull();
+  });
 });
 
 describe("splitFullName", () => {
