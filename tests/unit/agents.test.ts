@@ -30,6 +30,10 @@ const noOpSearchProvider: SearchProvider = {
   findDecisionMakers: async () => [],
 };
 
+function fakeSearchProvider(results: Awaited<ReturnType<SearchProvider["findDecisionMakers"]>>): SearchProvider {
+  return { name: "fake", findDecisionMakers: async () => results };
+}
+
 describe("runResearchAgent", () => {
   const validResponse = JSON.stringify({
     companySummary: "Acme Logistics is a freight company.",
@@ -161,6 +165,53 @@ describe("runDecisionMakerAgent", () => {
       pages: samplePages,
     });
     expect(result.candidates[0]!.firstName).toBe("Jane");
+  });
+
+  it("self-heals a candidate's email/emailStatus from the real SearchProvider record when the model alters it during synthesis (2026-09-16 fix, protects a real verified email like Hunter's from being corrupted before it reaches sending)", async () => {
+    const realResult = {
+      fullName: "Jane Doe",
+      title: "CEO",
+      email: "jane@acme.example.com", // the real, verified address from the SearchProvider
+      emailStatus: "verified" as const,
+      sourceUrl: "https://hunter.io/whatever",
+      confidence: 0.9,
+    };
+    const modelAlteredResponse = JSON.stringify({
+      candidates: [
+        {
+          firstName: "Jane",
+          lastName: "Doe",
+          fullName: "Jane Doe",
+          title: "CEO",
+          email: "jane@acmeexample.com", // subtly wrong -- missing the dot, e.g. a transcription slip
+          emailStatus: "verified",
+          sourceUrl: "https://hunter.io/whatever",
+          confidence: 0.9,
+          relevanceReason: "CEO matches target role",
+        },
+      ],
+    });
+
+    const provider = queuedProvider([modelAlteredResponse]);
+    const result = await runDecisionMakerAgent(provider, fakeSearchProvider([realResult]), {
+      companyName: "Acme",
+      companyDomain: "acme.example.com",
+      targetRoles: ["CEO"],
+      pages: samplePages,
+    });
+
+    expect(result.candidates[0]!.email).toBe("jane@acme.example.com");
+  });
+
+  it("leaves a candidate's email as reported when it has no matching real SearchProvider record (e.g. found only on a crawled page)", async () => {
+    const provider = queuedProvider([validResponse]); // email: null in this fixture, no search results to match against
+    const result = await runDecisionMakerAgent(provider, noOpSearchProvider, {
+      companyName: "Acme",
+      companyDomain: "acme.example.com",
+      targetRoles: ["CEO"],
+      pages: samplePages,
+    });
+    expect(result.candidates[0]!.email).toBeNull();
   });
 });
 

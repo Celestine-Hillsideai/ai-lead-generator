@@ -9,7 +9,8 @@ Base list from `docs/spec.md` §31, split by which deploy target actually needs 
 | `SUPABASE_SERVICE_ROLE_KEY` | — | ✅ | **Not set on Vercel as built.** Every Server Action/Route Handler in `app/` uses `lib/supabase/server.ts` (anon key + the user's session cookie, RLS-scoped) — there are no privileged writes that bypass RLS from the frontend. Only Trigger.dev tasks use the service-role client (`lib/database/client.ts`). If a future Vercel-side operation genuinely needs to bypass RLS, add this var then, server-only, and re-justify it rather than adding it by default. |
 | `ANTHROPIC_API_KEY` | — | ✅ | Agents run in `trigger/` tasks, not in Vercel functions. Only set where the agents actually execute. |
 | `OPENAI_API_KEY` | — | ✅ | Same as above — only if OpenAI is the selected provider. |
-| `SEARCH_API_KEY` | — | ✅ | Used by the Decision-Maker Research Agent, which runs in a Trigger.dev task. |
+| `HUNTER_API_KEY` | — | ✅ | Primary Decision-Maker Research Agent provider (`lib/search/hunter.ts`) — Hunter.io's Domain Search, structured real people + verified emails, no AI step. Required for real mode. |
+| `SEARCH_API_KEY` | — | ✅ | Tavily, the Decision-Maker Research Agent's fallback provider (`lib/search/tavily.ts`) — used only when Hunter finds nothing for a domain. Optional; if unset, Hunter runs alone. |
 | `SOURCING_API_KEY` | — | ✅ | Used by the company-sourcing provider (spec §11A, `lib/sourcing/`), which runs in `trigger/sourcing-workflow.ts`. Deliberately a separate key/concern from `SEARCH_API_KEY` — company-level ICP discovery vs. person-level lookup within an already-known company. |
 | `SOURCING_PROVIDER` | — | ✅ | `"tavily"` (default) or `"apollo"` — which real implementation `SOURCING_API_KEY` belongs to (spec §11A). Tavily needs no other var; being AI-backed, it also reads whichever `MOCK_AI`/`OPENAI_API_KEY`/`ANTHROPIC_API_KEY` config is already set. |
 | `RESEND_API_KEY` | — | ✅ | Sending happens from the Trigger.dev pipeline (Phase 10), not from a Vercel request. |
@@ -21,7 +22,7 @@ Base list from `docs/spec.md` §31, split by which deploy target actually needs 
 
 ## Rules
 
-- Never put `SUPABASE_SERVICE_ROLE_KEY`, any AI provider key, `SEARCH_API_KEY`, `SOURCING_API_KEY`, `RESEND_API_KEY`, or `TRIGGER_SECRET_KEY` behind a `NEXT_PUBLIC_` prefix or otherwise ship them to the browser.
+- Never put `SUPABASE_SERVICE_ROLE_KEY`, any AI provider key, `HUNTER_API_KEY`, `SEARCH_API_KEY`, `SOURCING_API_KEY`, `RESEND_API_KEY`, or `TRIGGER_SECRET_KEY` behind a `NEXT_PUBLIC_` prefix or otherwise ship them to the browser.
 - Vercel and Trigger.dev have separate environment variable stores (Vercel Project Settings vs the Trigger.dev dashboard) — setting a var in one does not set it in the other. When adding a new secret, decide which side actually needs it (default to "only where the code that uses it runs") and set it there, per the table above.
 - Keep `MOCK_EMAIL=true` as the default even outside local dev until Phase 10 is deliberately enabling real sends — sending must stay opt-in (spec §20).
 - A `NEXT_PUBLIC_` var whose value looks like a credential gets refused by `vercel env add` unless you pass `--type config` (public, e.g. the Supabase anon key) or `--type secret` with a non-public name — see `01-deployment.md`.
