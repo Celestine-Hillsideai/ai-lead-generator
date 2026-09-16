@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "../../../../../lib/supabase/server";
 import { getCampaignWithStats, getUserSettings, getLatestSourcingRun } from "../../../../../lib/database/queries";
 import { PageHeader } from "../../../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../../../components/layout/breadcrumbs";
 import { LeadsTable } from "../../../../../components/leads/leads-table";
 import { CsvImport } from "../../../../../components/leads/csv-import";
 import { SourceCompanies } from "../../../../../components/leads/source-companies";
@@ -26,6 +27,13 @@ export default async function LeadsPage({ params }: { params: Promise<{ campaign
 
   return (
     <div>
+      <Breadcrumbs
+        items={[
+          { label: "Campaigns", href: "/campaigns" },
+          { label: campaign.name, href: `/campaigns/${campaignId}` },
+          { label: "Leads" },
+        ]}
+      />
       <PageHeader title={`${campaign.name} — Leads`} description={`${companies.length} companies imported`} />
       <div className="mb-6 grid gap-6 md:grid-cols-2">
         <CsvImport campaignId={campaignId} />

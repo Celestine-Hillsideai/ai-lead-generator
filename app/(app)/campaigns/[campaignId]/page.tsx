@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "../../../../lib/supabase/server";
 import { getCampaignWithStats, getUserSettings, getLatestSourcingRun } from "../../../../lib/database/queries";
 import { PageHeader } from "../../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../../components/layout/breadcrumbs";
 import { Card, CardBody, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
@@ -33,6 +34,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
 
   return (
     <div>
+      <Breadcrumbs items={[{ label: "Campaigns", href: "/campaigns" }, { label: campaign.name }]} />
       <PageHeader
         title={campaign.name}
         description={campaign.description ?? undefined}

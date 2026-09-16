@@ -51,6 +51,13 @@ export default async function DashboardPage() {
             <Link href="/campaigns/new" className="mt-3 inline-block">
               <Button>Create your first campaign</Button>
             </Link>
+            <p className="mt-4 text-sm text-ink-muted">
+              New here?{" "}
+              <Link href="/help" className="text-accent-700 hover:underline">
+                Read the getting started guide
+              </Link>
+              .
+            </p>
           </CardBody>
         </Card>
       ) : (

@@ -79,6 +79,13 @@ export async function getCampaignWithStats(db: SupabaseClient<Database>, campaig
   return { campaign, companies: companies ?? [] };
 }
 
+/** Just the campaign name, for breadcrumbs on pages nested under a campaign that don't otherwise need the full row. */
+export async function getCampaignName(db: SupabaseClient<Database>, campaignId: string): Promise<string> {
+  const { data, error } = await db.from("campaigns").select("name").eq("id", campaignId).single();
+  if (error || !data) throw new Error(`Campaign not found: ${error?.message}`);
+  return data.name;
+}
+
 export async function getCompanyDetail(db: SupabaseClient<Database>, companyId: string) {
   const { data: company, error } = await db.from("companies").select("*").eq("id", companyId).single();
   if (error || !company) throw new Error(`Company not found: ${error?.message}`);

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "../../../../../../lib/supabase/server";
-import { getCompanyDetail, getEmailDraftHistory } from "../../../../../../lib/database/queries";
+import { getCompanyDetail, getEmailDraftHistory, getCampaignName } from "../../../../../../lib/database/queries";
 import { PageHeader } from "../../../../../../components/layout/page-header";
+import { Breadcrumbs } from "../../../../../../components/layout/breadcrumbs";
 import { Card, CardBody, CardHeader, CardTitle } from "../../../../../../components/ui/card";
 import { Badge, TierBadge } from "../../../../../../components/ui/badge";
 import { QualificationBreakdown } from "../../../../../../components/leads/qualification-breakdown";
@@ -23,6 +24,8 @@ export default async function LeadDetailPage({
     notFound();
   }
 
+  const campaignName = await getCampaignName(supabase, campaignId).catch(() => "Campaign");
+
   const { company, findings, contacts, qualification, emailDrafts } = detail;
   const revalidatePathTarget = `/campaigns/${campaignId}/leads/${companyId}`;
   const allFindings = findings.map((f) => ({
@@ -36,6 +39,14 @@ export default async function LeadDetailPage({
 
   return (
     <div>
+      <Breadcrumbs
+        items={[
+          { label: "Campaigns", href: "/campaigns" },
+          { label: campaignName, href: `/campaigns/${campaignId}` },
+          { label: "Leads", href: `/campaigns/${campaignId}/leads` },
+          { label: company.name },
+        ]}
+      />
       <PageHeader
         title={company.name}
         description={company.website}
